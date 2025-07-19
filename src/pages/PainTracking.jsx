@@ -135,32 +135,6 @@ const PainTracking = () => {
     'Radiating pain'
   ];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (editingEntry) {
-      updatePainEntry(editingEntry.id, formData);
-    } else {
-      addPainEntry(formData);
-    }
-    
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setFormData({
-      painLevel: 0,
-      location: '',
-      triggers: '',
-      symptoms: '',
-      notes: '',
-      exerciseCompleted: false,
-      medicationTaken: false
-    });
-    setShowForm(false);
-    setEditingEntry(null);
-  };
-
   const handleEdit = (entry) => {
     setEditingEntry(entry);
     setFormData({
