@@ -874,7 +874,6 @@ const ExercisesCore = () => {
           </p>
         </div>
       )}
-        </div>
       </SafeRenderer>
     </div>
   );
