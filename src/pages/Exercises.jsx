@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useExercises } from '../hooks/useData';
 import SafeRenderer from '../components/SafeRenderer';
+import UltraSafeRenderer from '../components/UltraSafeRenderer';
 import { 
   Play, 
   Pause, 
@@ -32,16 +33,29 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-const Exercises = () => {
-  // ULTRA-SAFE EXERCISE DATA LOADING
+const ExercisesCore = () => {
+  // ULTRA-SAFE EXERCISE DATA LOADING WITH DEBUG INFO
   let exerciseData = null;
   let safeExercises = [];
   
   try {
     const hookResult = useExercises();
+    console.log('Raw hook result:', hookResult);
+    console.log('Hook result type:', typeof hookResult);
+    
     exerciseData = hookResult || {};
     const rawExercises = exerciseData.exercises;
+    console.log('Raw exercises:', rawExercises);
+    console.log('Is raw exercises an array?', Array.isArray(rawExercises));
+    
     safeExercises = (rawExercises && Array.isArray(rawExercises)) ? rawExercises : [];
+    console.log('Safe exercises length:', safeExercises.length);
+    
+    // Log first exercise to check structure
+    if (safeExercises.length > 0) {
+      console.log('First exercise sample:', safeExercises[0]);
+      console.log('First exercise keys:', Object.keys(safeExercises[0] || {}));
+    }
   } catch (error) {
     console.error('Error loading exercises:', error);
     safeExercises = [];
@@ -863,6 +877,14 @@ const Exercises = () => {
         </div>
       </SafeRenderer>
     </div>
+  );
+};
+
+const Exercises = () => {
+  return (
+    <UltraSafeRenderer>
+      <ExercisesCore />
+    </UltraSafeRenderer>
   );
 };
 
