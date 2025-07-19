@@ -51,8 +51,8 @@ export const useExercises = () => {
   const [exercises, setExercises] = useState([]);
 
   useEffect(() => {
-    const savedExercises = storage.get(STORAGE_KEYS.EXERCISES) || [];
-    setExercises(savedExercises);
+    const savedExercises = storage.get(STORAGE_KEYS.EXERCISES);
+    setExercises(Array.isArray(savedExercises) ? savedExercises : []);
   }, []);
 
   const addExercise = useCallback((exercise) => {
