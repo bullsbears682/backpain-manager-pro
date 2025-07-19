@@ -409,7 +409,13 @@ const Exercises = () => {
 
       {/* Exercise Grid/List */}
       <div className={viewMode === 'grid' ? 'grid-3' : ''}>
-        {filteredExercises && filteredExercises.length > 0 ? filteredExercises.map(exercise => (
+        {filteredExercises && Array.isArray(filteredExercises) && filteredExercises.length > 0 ? filteredExercises.map(exercise => {
+          // Additional safety check for each exercise
+          if (!exercise || typeof exercise !== 'object' || !exercise.id) {
+            return null;
+          }
+          
+          return (
           <div key={exercise.id} className="exercise-card" style={{ position: 'relative' }}>
             {/* Favorite button */}
             <button
@@ -526,7 +532,7 @@ const Exercises = () => {
                 Target Areas:
               </div>
               <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                {exercise.targetAreas.map(area => (
+                {exercise.targetAreas && Array.isArray(exercise.targetAreas) ? exercise.targetAreas.map(area => (
                   <span key={area} style={{
                     padding: '0.25rem 0.5rem',
                     backgroundColor: 'var(--bg-tertiary)',
@@ -536,7 +542,11 @@ const Exercises = () => {
                   }}>
                     {area}
                   </span>
-                ))}
+                )) : (
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                    No target areas specified
+                  </span>
+                )}
               </div>
             </div>
 
@@ -561,7 +571,8 @@ const Exercises = () => {
               </button>
             </div>
           </div>
-        )) : (
+          );
+        }) : (
           <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
             <Activity size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
             <h3 style={{ marginBottom: '0.5rem' }}>No exercises available</h3>
