@@ -170,11 +170,189 @@ h3 {
   min-height: 100vh;
   padding: var(--space-8);
   transition: var(--transition-normal);
+  position: relative;
+}
+
+.main-content.minimized {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* =============================================================================
+   INFINEX-STYLE PAGE CONTROLS
+============================================================================= */
+
+.page-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+  background: var(--glass-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  animation: slideInDown 0.3s ease-out;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.page-controls-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.page-controls-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  backdrop-filter: var(--backdrop-blur);
+  position: relative;
+  overflow: hidden;
+}
+
+.control-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: var(--transition-fast);
+  z-index: -1;
+}
+
+.control-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+}
+
+.control-btn:hover::before {
+  opacity: 0.1;
+}
+
+.control-btn:active {
+  transform: translateY(0);
+}
+
+.back-btn:hover {
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+}
+
+.back-btn:hover::before {
+  background: var(--gradient-green);
+}
+
+.minimize-btn:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+}
+
+.minimize-btn:hover::before {
+  background: var(--gradient-orange);
+}
+
+.close-btn:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+.close-btn:hover::before {
+  background: var(--gradient-danger);
+}
+
+.page-title h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+  display: block;
 }
 
 .content-wrapper {
   max-width: 1400px;
   margin: 0 auto;
+  transition: var(--transition-normal);
+  transform-origin: top center;
+}
+
+.content-wrapper.minimized {
+  transform: scale(0.9);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Page transition effects */
+.page-content {
+  animation: pageSlideIn 0.3s ease-out;
+  transform-origin: center;
+}
+
+.page-content.transitioning {
+  animation: pageSlideOut 0.15s ease-in forwards;
+}
+
+@keyframes pageSlideIn {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pageSlideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
 }
 
 /* Grid Systems */
@@ -194,6 +372,229 @@ h3 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-4);
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN - MOBILE OPTIMIZATIONS
+============================================================================= */
+
+/* Mobile Menu Toggle */
+.mobile-menu-toggle {
+  position: fixed;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  box-shadow: var(--shadow-card);
+}
+
+.mobile-menu-toggle:hover {
+  background: var(--gradient-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sidebar-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.sidebar-close:hover {
+  color: var(--text-primary);
+  background: var(--gradient-danger);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    padding: var(--space-4);
+    padding-top: 80px; /* Space for mobile menu toggle */
+  }
+  
+  .page-controls {
+    padding: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  
+  .page-controls-left {
+    gap: var(--space-2);
+  }
+  
+  .page-title h2 {
+    font-size: 1.25rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.75rem;
+  }
+  
+  .control-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .sidebar-header {
+    padding-top: var(--space-12); /* Space for close button */
+  }
+}
+
+@media (max-width: 480px) {
+  .page-controls {
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: stretch;
+  }
+  
+  .page-controls-left,
+  .page-controls-right {
+    justify-content: space-between;
+  }
+  
+  .page-title {
+    text-align: center;
+    flex: 1;
+  }
+}
+
+/* =============================================================================
+   FLOATING ACTION BUTTONS (FABs)
+============================================================================= */
+
+.floating-actions {
+  position: fixed;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  z-index: 1000;
+}
+
+.fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  animation: fabFloat 3s ease-in-out infinite;
+}
+
+.fab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: var(--transition-fast);
+  z-index: -1;
+}
+
+.fab:hover {
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: var(--shadow-glow);
+}
+
+.fab:hover::before {
+  opacity: 1;
+}
+
+.fab:active {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.fab.quick-pain::before {
+  background: var(--gradient-danger);
+}
+
+.fab.quick-exercise::before {
+  background: var(--gradient-green);
+}
+
+@keyframes fabFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Mobile adjustments for FABs */
+@media (max-width: 768px) {
+  .floating-actions {
+    bottom: var(--space-6);
+    right: var(--space-6);
+    gap: var(--space-3);
+  }
+  
+  .fab {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 /* =============================================================================
