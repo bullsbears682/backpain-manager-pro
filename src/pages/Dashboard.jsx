@@ -12,7 +12,19 @@ import {
 } from 'chart.js';
 import { usePainEntries, useExercises, useAppointments } from '../hooks/useData';
 import { formatDate, getLastNDays } from '../utils/dateUtils';
-import { TrendingDown, TrendingUp, Calendar, Activity, AlertCircle } from 'lucide-react';
+import { 
+  TrendingDown, 
+  TrendingUp, 
+  Calendar, 
+  Activity, 
+  AlertCircle, 
+  Heart,
+  Zap,
+  Target,
+  Clock,
+  Plus,
+  ArrowRight
+} from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -87,10 +99,15 @@ const Dashboard = () => {
         {
           label: 'Pain Level',
           data: data,
-          borderColor: '#667eea',
-          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          borderColor: 'rgb(99, 102, 241)',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
           tension: 0.4,
           fill: true,
+          pointBackgroundColor: 'rgb(99, 102, 241)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
         },
       ],
     };
@@ -101,20 +118,41 @@ const Dashboard = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        display: false,
       },
-      title: {
-        display: true,
-        text: 'Pain Levels - Last 7 Days',
+      tooltip: {
+        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: 'rgba(99, 102, 241, 0.3)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: false,
       },
     },
     scales: {
       y: {
         beginAtZero: true,
         max: 10,
-        title: {
-          display: true,
-          text: 'Pain Level (0-10)',
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          color: '#6b7280',
+          font: {
+            size: 12,
+          },
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#6b7280',
+          font: {
+            size: 12,
+          },
         },
       },
     },
@@ -123,34 +161,98 @@ const Dashboard = () => {
   const recentActivities = useMemo(() => {
     const activities = [];
     
-    // Add recent pain entries
-    painEntries.slice(-5).forEach(entry => {
+    painEntries.slice(0, 3).forEach(entry => {
       activities.push({
-        id: entry.id,
+        id: `pain-${entry.id}`,
         type: 'pain',
-        description: `Pain level recorded: ${entry.painLevel}/10`,
+        description: `Recorded pain level: ${entry.painLevel}/10`,
         timestamp: entry.timestamp,
-        icon: AlertCircle,
-        color: entry.painLevel > 6 ? '#f56565' : entry.painLevel > 3 ? '#ed8936' : '#48bb78'
+        icon: Activity,
+        color: entry.painLevel > 6 ? '#ef4444' : entry.painLevel > 3 ? '#f59e0b' : '#10b981'
       });
     });
 
-    // Add recent appointments
-    appointments.slice(-3).forEach(apt => {
+    appointments.slice(0, 2).forEach(apt => {
       activities.push({
-        id: apt.id,
+        id: `appointment-${apt.id}`,
         type: 'appointment',
-        description: `Appointment: ${apt.title}`,
+        description: `${apt.type} appointment`,
         timestamp: apt.datetime,
         icon: Calendar,
-        color: '#667eea'
+        color: '#6366f1'
       });
     });
 
     return activities
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, 8);
+      .slice(0, 6);
   }, [painEntries, appointments]);
+
+  const statCards = [
+    {
+      title: 'Average Pain',
+      value: stats.averagePain,
+      subtitle: '7 days',
+      icon: Activity,
+      color: stats.averagePain > 6 ? '#ef4444' : stats.averagePain > 3 ? '#f59e0b' : '#10b981',
+      trend: {
+        value: stats.painTrend,
+        icon: stats.painTrend < 0 ? TrendingDown : stats.painTrend > 0 ? TrendingUp : null,
+        text: stats.painTrend === 0 ? 'Stable' : `${Math.abs(stats.painTrend).toFixed(1)} ${stats.painTrend < 0 ? 'decrease' : 'increase'}`
+      }
+    },
+    {
+      title: 'Exercises',
+      value: stats.exercisesThisWeek,
+      subtitle: 'this week',
+      icon: Zap,
+      color: '#6366f1',
+      trend: null
+    },
+    {
+      title: 'Appointments',
+      value: stats.upcomingAppointments,
+      subtitle: 'upcoming',
+      icon: Calendar,
+      color: '#10b981',
+      trend: null
+    },
+    {
+      title: 'Pain Records',
+      value: stats.totalPainEntries,
+      subtitle: 'total entries',
+      icon: Target,
+      color: '#f59e0b',
+      trend: null
+    }
+  ];
+
+  const quickActions = [
+    {
+      label: 'Record Pain',
+      icon: Activity,
+      variant: 'primary',
+      description: 'Log your current pain level'
+    },
+    {
+      label: 'New Appointment',
+      icon: Calendar,
+      variant: 'secondary',
+      description: 'Schedule with your doctor'
+    },
+    {
+      label: 'Start Exercise',
+      icon: Zap,
+      variant: 'secondary',
+      description: 'Begin a recommended routine'
+    },
+    {
+      label: 'View Reports',
+      icon: Target,
+      variant: 'secondary',
+      description: 'Analyze your progress'
+    }
+  ];
 
   return (
     <div>
@@ -159,74 +261,145 @@ const Dashboard = () => {
         <p>Welcome to your back pain management dashboard</p>
       </div>
 
-      {/* Statistics Grid */}
+      {/* Enhanced Statistics Grid */}
       <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: stats.averagePain > 6 ? '#f56565' : stats.averagePain > 3 ? '#ed8936' : '#48bb78' }}>
-            {stats.averagePain}
-          </div>
-          <div className="stat-label">Average Pain (7 days)</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '0.5rem' }}>
-            {stats.painTrend < 0 ? (
-              <TrendingDown size={16} style={{ color: '#48bb78', marginRight: '0.25rem' }} />
-            ) : stats.painTrend > 0 ? (
-              <TrendingUp size={16} style={{ color: '#f56565', marginRight: '0.25rem' }} />
-            ) : null}
-            <span style={{ fontSize: '0.75rem', color: '#718096' }}>
-              {stats.painTrend === 0 ? 'Stable' : `${Math.abs(stats.painTrend).toFixed(1)} ${stats.painTrend < 0 ? 'decrease' : 'increase'}`}
-            </span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: '#667eea' }}>
-            {stats.exercisesThisWeek}
-          </div>
-          <div className="stat-label">Exercises This Week</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: '#48bb78' }}>
-            {stats.upcomingAppointments}
-          </div>
-          <div className="stat-label">Upcoming Appointments</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: '#ed8936' }}>
-            {stats.totalPainEntries}
-          </div>
-          <div className="stat-label">Total Pain Records</div>
-        </div>
+        {statCards.map((stat, index) => {
+          const IconComponent = stat.icon;
+          return (
+            <div key={index} className="stat-card">
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '1rem'
+              }}>
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  backgroundColor: `${stat.color}15`,
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <IconComponent size={20} style={{ color: stat.color }} />
+                </div>
+                {stat.trend?.icon && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    backgroundColor: stat.trend.value < 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '6px'
+                  }}>
+                    <stat.trend.icon size={14} style={{ 
+                      color: stat.trend.value < 0 ? '#10b981' : '#ef4444' 
+                    }} />
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      fontWeight: '600',
+                      color: stat.trend.value < 0 ? '#10b981' : '#ef4444'
+                    }}>
+                      {stat.trend.text}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="stat-value" style={{ color: stat.color }}>
+                {stat.value}
+              </div>
+              
+              <div className="stat-label">
+                {stat.title} <span style={{ opacity: 0.7 }}>({stat.subtitle})</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="grid grid-2">
-        {/* Pain Trend Chart */}
+      <div className="grid-2">
+        {/* Enhanced Pain Trend Chart */}
         <div className="card">
           <div className="card-header">
-            <h3>Pain Trend</h3>
+            <div>
+              <h3 className="card-title">Pain Trend Analysis</h3>
+              <p className="card-subtitle">Last 7 days overview</p>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: 'var(--primary-600)'
+            }}>
+              <TrendingUp size={16} />
+              Analytics
+            </div>
           </div>
           <div className="chart-container">
             <Line data={chartData} options={chartOptions} />
           </div>
         </div>
 
-        {/* Recent Activities */}
+        {/* Enhanced Recent Activities */}
         <div className="card">
           <div className="card-header">
-            <h3>Recent Activities</h3>
+            <div>
+              <h3 className="card-title">Recent Activity</h3>
+              <p className="card-subtitle">Your latest health actions</p>
+            </div>
+            <button style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem',
+              background: 'none',
+              border: '1px solid var(--border-primary)',
+              borderRadius: '8px',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              transition: 'all var(--transition-normal)'
+            }}>
+              View All
+              <ArrowRight size={14} />
+            </button>
           </div>
-          <div className="card-content">
+          <div style={{ padding: '0 0.5rem' }}>
             {recentActivities.length === 0 ? (
-              <p style={{ color: '#718096', textAlign: 'center', padding: '2rem' }}>
-                No recent activities. Start by recording your pain level or scheduling an appointment.
-              </p>
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '3rem 1rem',
+                color: 'var(--text-secondary)'
+              }}>
+                <AlertCircle size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                <p style={{ marginBottom: '0.5rem', fontWeight: '600' }}>No recent activities</p>
+                <p style={{ fontSize: '0.875rem', opacity: 0.8 }}>
+                  Start by recording your pain level or scheduling an appointment
+                </p>
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {recentActivities.map(activity => {
                   const IconComponent = activity.icon;
                   return (
-                    <div key={activity.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div key={activity.id} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '1rem',
+                      padding: '1rem',
+                      backgroundColor: 'var(--bg-secondary)',
+                      borderRadius: 'var(--border-radius-md)',
+                      border: '1px solid var(--border-primary)',
+                      transition: 'all var(--transition-normal)',
+                      cursor: 'pointer'
+                    }}>
                       <div style={{
                         width: '2.5rem',
                         height: '2.5rem',
@@ -235,15 +408,27 @@ const Dashboard = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        boxShadow: `0 4px 12px ${activity.color}25`
                       }}>
                         <IconComponent size={16} color="white" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: '500', color: '#2d3748' }}>
+                        <div style={{ 
+                          fontWeight: '600', 
+                          color: 'var(--text-primary)',
+                          marginBottom: '0.25rem'
+                        }}>
                           {activity.description}
                         </div>
-                        <div style={{ fontSize: '0.875rem', color: '#718096' }}>
+                        <div style={{ 
+                          fontSize: '0.875rem', 
+                          color: 'var(--text-secondary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}>
+                          <Clock size={12} />
                           {formatDate(activity.timestamp)}
                         </div>
                       </div>
@@ -256,26 +441,68 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Enhanced Quick Actions */}
       <div className="card">
         <div className="card-header">
-          <h3>Quick Actions</h3>
-        </div>
-        <div className="card-content">
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary">
-              <Activity size={16} />
-              Record Pain Level
-            </button>
-            <button className="btn btn-secondary">
-              <Calendar size={16} />
-              Schedule Appointment
-            </button>
-            <button className="btn btn-secondary">
-              <TrendingUp size={16} />
-              Start Exercise
-            </button>
+          <div>
+            <h3 className="card-title">Quick Actions</h3>
+            <p className="card-subtitle">Common tasks at your fingertips</p>
           </div>
+        </div>
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '1rem'
+        }}>
+          {quickActions.map((action, index) => {
+            const IconComponent = action.icon;
+            return (
+              <button 
+                key={index}
+                className={`btn ${action.variant === 'primary' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1.5rem',
+                  height: 'auto',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{
+                  width: '3rem',
+                  height: '3rem',
+                  backgroundColor: action.variant === 'primary' ? 'rgba(255, 255, 255, 0.2)' : 'var(--primary-500)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <IconComponent 
+                    size={20} 
+                    color={action.variant === 'primary' ? 'white' : 'white'} 
+                  />
+                </div>
+                <div>
+                  <div style={{ 
+                    fontWeight: '700', 
+                    marginBottom: '0.25rem',
+                    fontSize: '0.95rem'
+                  }}>
+                    {action.label}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    opacity: 0.8,
+                    fontWeight: '500'
+                  }}>
+                    {action.description}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   Activity, 
@@ -7,10 +7,28 @@ import {
   Pill, 
   BookOpen,
   FileText,
-  Settings
+  Settings,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, onTabChange }) => {
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    // Load theme from localStorage or default to light
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'pain-tracking', label: 'Pain Tracking', icon: Activity },
@@ -39,6 +57,7 @@ const Sidebar = ({ activeTab, onTabChange }) => {
                   className={activeTab === item.id ? 'active' : ''}
                   onClick={() => onTabChange(item.id)}
                   aria-label={item.label}
+                  aria-current={activeTab === item.id ? 'page' : undefined}
                 >
                   <IconComponent className="icon" />
                   {item.label}
@@ -48,6 +67,25 @@ const Sidebar = ({ activeTab, onTabChange }) => {
           })}
         </ul>
       </nav>
+
+      <button 
+        className="theme-toggle"
+        onClick={toggleTheme}
+        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      >
+        {theme === 'light' ? (
+          <>
+            <Moon size={18} />
+            Dark Mode
+          </>
+        ) : (
+          <>
+            <Sun size={18} />
+            Light Mode
+          </>
+        )}
+      </button>
     </div>
   );
 };
