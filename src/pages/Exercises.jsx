@@ -32,6 +32,9 @@ import {
 
 const Exercises = () => {
   const { exercises } = useExercises();
+  
+  // Extra safety check for exercises
+  const safeExercises = exercises && Array.isArray(exercises) ? exercises : [];
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -55,6 +58,7 @@ const Exercises = () => {
   // UI states
   const [showFilters, setShowFilters] = useState(false);
   const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const categories = ['All', 'Flexibility', 'Strengthening', 'Mobility', 'Aerobic', 'Balance', 'Relaxation', 'Mind-Body', 'Functional', 'Workplace', 'Recovery', 'Dynamic', 'Posture'];
   const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
@@ -76,6 +80,10 @@ const Exercises = () => {
     if (savedCompleted) setCompletedExercises(new Set(JSON.parse(savedCompleted)));
     if (savedFavorites) setFavoriteExercises(new Set(JSON.parse(savedFavorites)));
     if (savedHistory) setExerciseHistory(JSON.parse(savedHistory));
+    
+    // Set loading to false after a brief delay to ensure exercises are loaded
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
   }, []);
 
   // Save data to localStorage
@@ -131,11 +139,11 @@ const Exercises = () => {
 
   // Filtered and sorted exercises
   const filteredExercises = useMemo(() => {
-    if (!exercises || !Array.isArray(exercises)) {
+    if (!safeExercises || !Array.isArray(safeExercises) || safeExercises.length === 0) {
       return [];
     }
     
-    let filtered = exercises.filter(exercise => {
+    let filtered = safeExercises.filter(exercise => {
       // Safety checks for exercise properties
       if (!exercise || typeof exercise !== 'object') return false;
       
@@ -177,7 +185,7 @@ const Exercises = () => {
     });
 
     return filtered;
-  }, [exercises, filterCategory, filterDifficulty, filterPainLevel, searchTerm, sortBy]);
+  }, [safeExercises, filterCategory, filterDifficulty, filterPainLevel, searchTerm, sortBy]);
 
   const startExercise = (exercise) => {
     setSelectedExercise(exercise);
@@ -409,7 +417,15 @@ const Exercises = () => {
 
       {/* Exercise Grid/List */}
       <div className={viewMode === 'grid' ? 'grid-3' : ''}>
-        {filteredExercises && Array.isArray(filteredExercises) && filteredExercises.length > 0 ? filteredExercises.map(exercise => {
+        {isLoading ? (
+          <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+            <RefreshCw size={48} style={{ opacity: 0.3, marginBottom: '1rem', animation: 'spin 2s linear infinite' }} />
+            <h3 style={{ marginBottom: '0.5rem' }}>Loading exercises...</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Please wait while we load your exercise library.
+            </p>
+          </div>
+        ) : filteredExercises && Array.isArray(filteredExercises) && filteredExercises.length > 0 ? filteredExercises.map(exercise => {
           // Additional safety check for each exercise
           if (!exercise || typeof exercise !== 'object' || !exercise.id) {
             return null;
@@ -577,7 +593,7 @@ const Exercises = () => {
             <Activity size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
             <h3 style={{ marginBottom: '0.5rem' }}>No exercises available</h3>
             <p style={{ color: 'var(--text-secondary)' }}>
-              Loading exercises or no exercises found.
+              No exercises found with current filters.
             </p>
           </div>
         )}
