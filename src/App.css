@@ -1393,6 +1393,15 @@ h3 {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes urgent-pulse {
   0%, 100% {
     transform: scale(1);
