@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useExercises } from '../hooks/useData';
+import SafeRenderer from '../components/SafeRenderer';
 import { 
   Play, 
   Pause, 
@@ -27,7 +28,8 @@ import {
   Dumbbell,
   Flame,
   Shield,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 
 const Exercises = () => {
@@ -319,9 +321,9 @@ const Exercises = () => {
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
               >
-                {categories.map(cat => (
+                {categories && Array.isArray(categories) ? categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
-                ))}
+                )) : null}
               </select>
             </div>
 
@@ -332,9 +334,9 @@ const Exercises = () => {
                 value={filterDifficulty}
                 onChange={(e) => setFilterDifficulty(e.target.value)}
               >
-                {difficulties.map(diff => (
+                {difficulties && Array.isArray(difficulties) ? difficulties.map(diff => (
                   <option key={diff} value={diff}>{diff}</option>
-                ))}
+                )) : null}
               </select>
             </div>
 
@@ -345,9 +347,9 @@ const Exercises = () => {
                 value={filterPainLevel}
                 onChange={(e) => setFilterPainLevel(e.target.value)}
               >
-                {painLevels.map(level => (
+                {painLevels && Array.isArray(painLevels) ? painLevels.map(level => (
                   <option key={level} value={level}>{level}</option>
-                ))}
+                )) : null}
               </select>
             </div>
 
@@ -358,9 +360,9 @@ const Exercises = () => {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                {sortOptions.map(option => (
+                {sortOptions && Array.isArray(sortOptions) ? sortOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
+                )) : null}
               </select>
             </div>
 
@@ -416,8 +418,17 @@ const Exercises = () => {
       </div>
 
       {/* Exercise Grid/List */}
-      <div className={viewMode === 'grid' ? 'grid-3' : ''}>
-        {isLoading ? (
+      <SafeRenderer fallback={
+        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <AlertTriangle size={48} style={{ opacity: 0.3, marginBottom: '1rem', color: '#ef4444' }} />
+          <h3 style={{ marginBottom: '0.5rem' }}>Exercise Loading Error</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            Unable to load exercises. Please refresh the page.
+          </p>
+        </div>
+      }>
+        <div className={viewMode === 'grid' ? 'grid-3' : ''}>
+          {isLoading ? (
           <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
             <RefreshCw size={48} style={{ opacity: 0.3, marginBottom: '1rem', animation: 'spin 2s linear infinite' }} />
             <h3 style={{ marginBottom: '0.5rem' }}>Loading exercises...</h3>
@@ -628,20 +639,24 @@ const Exercises = () => {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Instructions</h4>
                   <ol className="exercise-instructions">
-                    {selectedExercise.instructions && Array.isArray(selectedExercise.instructions) ? 
+                    {selectedExercise && selectedExercise.instructions && Array.isArray(selectedExercise.instructions) ? 
                       selectedExercise.instructions.map((instruction, index) => (
                         <li key={index}>{instruction}</li>
-                      )) : null}
+                      )) : (
+                        <li>No instructions available</li>
+                      )}
                   </ol>
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Benefits</h4>
                   <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                    {selectedExercise.benefits && Array.isArray(selectedExercise.benefits) ? 
+                    {selectedExercise && selectedExercise.benefits && Array.isArray(selectedExercise.benefits) ? 
                       selectedExercise.benefits.map((benefit, index) => (
                         <li key={index}>{benefit}</li>
-                      )) : null}
+                      )) : (
+                        <li>No benefits listed</li>
+                      )}
                   </ul>
                 </div>
 
@@ -649,10 +664,12 @@ const Exercises = () => {
                   <div style={{ marginBottom: '1.5rem' }}>
                     <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Precautions</h4>
                     <ul style={{ paddingLeft: '1.5rem', color: 'var(--warning-600)' }}>
-                      {selectedExercise.precautions && Array.isArray(selectedExercise.precautions) ? 
+                      {selectedExercise && selectedExercise.precautions && Array.isArray(selectedExercise.precautions) ? 
                         selectedExercise.precautions.map((precaution, index) => (
                           <li key={index}>{precaution}</li>
-                        )) : null}
+                        )) : (
+                          <li>No precautions listed</li>
+                        )}
                     </ul>
                   </div>
                 )}
@@ -661,9 +678,12 @@ const Exercises = () => {
                   <div>
                     <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Modifications</h4>
                     <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                      {selectedExercise.modifications.map((modification, index) => (
-                        <li key={index}>{modification}</li>
-                      ))}
+                      {selectedExercise && selectedExercise.modifications && Array.isArray(selectedExercise.modifications) ? 
+                        selectedExercise.modifications.map((modification, index) => (
+                          <li key={index}>{modification}</li>
+                        )) : (
+                          <li>No modifications available</li>
+                        )}
                     </ul>
                   </div>
                 )}
@@ -724,7 +744,7 @@ const Exercises = () => {
         </div>
       )}
 
-      {filteredExercises.length === 0 && (
+      {!isLoading && filteredExercises.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
           <Search size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
           <h3 style={{ marginBottom: '0.5rem' }}>No exercises found</h3>
@@ -733,6 +753,8 @@ const Exercises = () => {
           </p>
         </div>
       )}
+        </div>
+      </SafeRenderer>
     </div>
   );
 };
