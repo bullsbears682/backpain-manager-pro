@@ -3,33 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="Professional back pain management application for tracking pain, exercises, medications, and recovery progress. Comprehensive healthcare solution.">
+    <meta name="keywords" content="back pain, pain management, healthcare, medical app, pain tracking, exercise, medication, wellness">
+    <meta name="author" content="BackPain Manager Pro">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="BackPain Manager Pro - Professional Pain Management">
+    <meta property="og:description" content="Comprehensive back pain management system for tracking pain, exercises, and recovery progress">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/og-image.png">
+    
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="BackPain Manager Pro">
+    <meta name="twitter:description" content="Professional back pain management application">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    
     <title>BackPain Manager Pro - Professional Pain Management</title>
-    <meta name="description" content="Professional back pain management application for tracking pain, exercises, and recovery progress">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preconnect to font domains for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Enhanced font loading with font-display swap for better performance -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
+        /* Critical CSS for better loading experience */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+        
+        html {
+            scroll-behavior: smooth;
         }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        /* Loading screen styles */
         #loading {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             color: white;
             font-size: 1.2rem;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff, #f0f8ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            body {
+                background: #000;
+                color: #fff;
+            }
+        }
+        
+        /* Dark mode preference */
+        @media (prefers-color-scheme: dark) {
+            html {
+                color-scheme: dark;
+            }
+        }
+        
+        /* Focus indicators for accessibility */
+        *:focus {
+            outline: 2px solid #6366f1;
+            outline-offset: 2px;
         }
     </style>
 </head>
 <body>
     <div id="root">
-        <div id="loading">Loading BackPain Manager Pro...</div>
+        <div id="loading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">BackPain Manager Pro</div>
+            <div style="opacity: 0.8;">Loading professional pain management system...</div>
+        </div>
     </div>
+    
+    <noscript>
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; color: white; padding: 2rem;">
+            <div>
+                <h1>JavaScript Required</h1>
+                <p>BackPain Manager Pro requires JavaScript to function properly. Please enable JavaScript in your browser settings.</p>
+            </div>
+        </div>
+    </noscript>
 </body>
 </html>
