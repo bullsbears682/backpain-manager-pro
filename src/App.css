@@ -3,24 +3,27 @@
    Ultra-Modern Dark Theme with Vibrant Gradients & Glass Morphism
 ============================================================================= */
 
-/* CSS Variables - Infinex-Inspired Design System */
+/* CSS Variables - Infinex.xyz Inspired Design System */
 :root {
-  /* Infinex Color Palette - Dark Theme */
-  --primary-bg: #0a0a0a;
-  --secondary-bg: #111111;
-  --card-bg: rgba(17, 17, 17, 0.8);
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  /* Infinex Color Palette - True Dark Theme */
+  --primary-bg: #000000;
+  --secondary-bg: #0a0a0a;
+  --tertiary-bg: #141414;
+  --card-bg: rgba(20, 20, 20, 0.9);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-hover: rgba(255, 255, 255, 0.06);
   
-  /* Infinex Signature Gradients */
-  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%);
-  --gradient-purple: linear-gradient(135deg, #8b5cf6, #6366f1);
-  --gradient-blue: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  --gradient-pink: linear-gradient(135deg, #ec4899, #be185d);
-  --gradient-green: linear-gradient(135deg, #10b981, #059669);
-  --gradient-orange: linear-gradient(135deg, #f59e0b, #d97706);
-  --gradient-success: linear-gradient(135deg, #22c55e, #15803d);
-  --gradient-danger: linear-gradient(135deg, #ef4444, #dc2626);
+  /* Infinex Signature Neon Gradients */
+  --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #00ff88 25%, #ff0080 50%, #8000ff 75%, #ffaa00 100%);
+  --gradient-neon-blue: linear-gradient(135deg, #00d4ff, #0099ff);
+  --gradient-neon-green: linear-gradient(135deg, #00ff88, #00cc66);
+  --gradient-neon-pink: linear-gradient(135deg, #ff0080, #cc0066);
+  --gradient-neon-purple: linear-gradient(135deg, #8000ff, #6600cc);
+  --gradient-neon-orange: linear-gradient(135deg, #ffaa00, #ff8800);
+  --gradient-success: linear-gradient(135deg, #00ff88, #00cc66);
+  --gradient-danger: linear-gradient(135deg, #ff0080, #cc0066);
+  --gradient-warning: linear-gradient(135deg, #ffaa00, #ff8800);
   
   /* Text Colors */
   --text-primary: #ffffff;
@@ -48,11 +51,14 @@
   --radius-2xl: 2rem;
   --radius-full: 9999px;
   
-  /* Shadows & Effects */
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-modal: 0 25px 50px rgba(0, 0, 0, 0.5);
-  --backdrop-blur: blur(20px);
+  /* Infinex Shadows & Effects */
+  --shadow-glow: 0 0 30px rgba(0, 212, 255, 0.4);
+  --shadow-glow-pink: 0 0 30px rgba(255, 0, 128, 0.4);
+  --shadow-glow-green: 0 0 30px rgba(0, 255, 136, 0.4);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 25px 50px rgba(0, 0, 0, 0.8);
+  --backdrop-blur: blur(24px);
+  --neon-glow: drop-shadow(0 0 10px currentColor);
   
   /* Transitions */
   --transition-fast: all 0.15s ease;
@@ -84,7 +90,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Animated Background */
+/* Infinex.xyz Animated Neon Background */
 body::before {
   content: '';
   position: fixed;
@@ -93,16 +99,36 @@ body::before {
   width: 100%;
   height: 100%;
   background: 
-    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 0, 128, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(0, 255, 136, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 60% 60%, rgba(128, 0, 255, 0.05) 0%, transparent 50%);
   z-index: -1;
-  animation: backgroundShift 20s ease-in-out infinite;
+  animation: neonPulse 8s ease-in-out infinite;
 }
 
-@keyframes backgroundShift {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(45deg, transparent 30%, rgba(0, 212, 255, 0.02) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(255, 0, 128, 0.02) 50%, transparent 70%);
+  z-index: -1;
+  animation: neonSweep 12s linear infinite;
+}
+
+@keyframes neonPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes neonSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* =============================================================================
@@ -188,7 +214,7 @@ h3 {
   justify-content: space-between;
   margin-bottom: var(--space-6);
   padding: var(--space-4) var(--space-6);
-  background: var(--glass-bg);
+  background: var(--card-bg);
   backdrop-filter: var(--backdrop-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
@@ -197,6 +223,20 @@ h3 {
   top: 0;
   z-index: 100;
   animation: slideInDown 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-controls::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gradient-primary);
+  opacity: 0.4;
+  animation: neonShimmer 2s ease-in-out infinite;
 }
 
 @keyframes slideInDown {
@@ -254,44 +294,48 @@ h3 {
 
 .control-btn:hover {
   color: var(--text-primary);
-  border-color: rgba(99, 102, 241, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+  border-color: rgba(0, 212, 255, 0.6);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-glow);
+  filter: var(--neon-glow);
 }
 
 .control-btn:hover::before {
-  opacity: 0.1;
+  opacity: 0.15;
 }
 
 .control-btn:active {
-  transform: translateY(0);
+  transform: translateY(-1px);
 }
 
 .back-btn:hover {
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+  border-color: rgba(0, 255, 136, 0.6);
+  box-shadow: var(--shadow-glow-green);
+  color: #00ff88;
 }
 
 .back-btn:hover::before {
-  background: var(--gradient-green);
+  background: var(--gradient-neon-green);
 }
 
 .minimize-btn:hover {
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+  border-color: rgba(255, 170, 0, 0.6);
+  box-shadow: 0 0 30px rgba(255, 170, 0, 0.4);
+  color: #ffaa00;
 }
 
 .minimize-btn:hover::before {
-  background: var(--gradient-orange);
+  background: var(--gradient-neon-orange);
 }
 
 .close-btn:hover {
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+  border-color: rgba(255, 0, 128, 0.6);
+  box-shadow: var(--shadow-glow-pink);
+  color: #ff0080;
 }
 
 .close-btn:hover::before {
-  background: var(--gradient-danger);
+  background: var(--gradient-neon-pink);
 }
 
 .page-title h2 {
@@ -570,12 +614,30 @@ h3 {
   transform: translateY(-2px) scale(1.05);
 }
 
+.fab.quick-pain {
+  border-color: rgba(255, 0, 128, 0.3);
+}
+
 .fab.quick-pain::before {
-  background: var(--gradient-danger);
+  background: var(--gradient-neon-pink);
+}
+
+.fab.quick-pain:hover {
+  box-shadow: var(--shadow-glow-pink);
+  color: #ff0080;
+}
+
+.fab.quick-exercise {
+  border-color: rgba(0, 255, 136, 0.3);
 }
 
 .fab.quick-exercise::before {
-  background: var(--gradient-green);
+  background: var(--gradient-neon-green);
+}
+
+.fab.quick-exercise:hover {
+  box-shadow: var(--shadow-glow-green);
+  color: #00ff88;
 }
 
 @keyframes fabFloat {
@@ -607,13 +669,26 @@ h3 {
   left: 0;
   width: 280px;
   height: 100vh;
-  background: rgba(17, 17, 17, 0.9);
+  background: rgba(10, 10, 10, 0.95);
   backdrop-filter: var(--backdrop-blur);
   border-right: 1px solid var(--glass-border);
   padding: var(--space-6);
   z-index: 1000;
   overflow-y: auto;
   transition: var(--transition-normal);
+  position: relative;
+}
+
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0.4;
+  animation: neonPulse 4s ease-in-out infinite;
 }
 
 .sidebar-header {
@@ -687,19 +762,21 @@ h3 {
 
 .sidebar-nav button:hover {
   color: var(--text-primary);
-  border-color: var(--glass-border);
-  background: var(--glass-bg);
+  border-color: rgba(0, 212, 255, 0.4);
+  background: var(--glass-hover);
   backdrop-filter: var(--backdrop-blur);
-  transform: translateX(4px);
+  transform: translateX(6px);
   box-shadow: var(--shadow-glow);
+  filter: var(--neon-glow);
 }
 
 .sidebar-nav button.active {
-  color: var(--text-primary);
-  background: var(--glass-bg);
-  border-color: rgba(99, 102, 241, 0.3);
+  color: #00d4ff;
+  background: var(--glass-hover);
+  border-color: rgba(0, 212, 255, 0.5);
   backdrop-filter: var(--backdrop-blur);
   box-shadow: var(--shadow-glow);
+  transform: translateX(4px);
 }
 
 .sidebar-nav button.active::after {
@@ -778,13 +855,42 @@ h3 {
   right: 0;
   height: 1px;
   background: var(--gradient-primary);
-  opacity: 0.5;
+  opacity: 0.3;
+  animation: neonShimmer 3s ease-in-out infinite;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: var(--transition-normal);
+  z-index: -1;
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-glow);
+  border-color: rgba(0, 212, 255, 0.4);
+  background: var(--glass-hover);
+}
+
+.card:hover::before {
+  opacity: 0.8;
+  animation: neonPulse 1s ease-in-out infinite;
+}
+
+.card:hover::after {
+  opacity: 0.05;
+}
+
+@keyframes neonShimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 
 .card-header {
