@@ -1,10 +1,35 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+} from 'chart.js';
 import { usePainEntries, useAppointments, useMedications } from '../hooks/useData';
 import { formatDate, getLastNDays } from '../utils/dateUtils';
 import { Download, Calendar, TrendingUp, Activity, Pill, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale
+);
 
 const Reports = () => {
   const { painEntries } = usePainEntries();
@@ -12,6 +37,22 @@ const Reports = () => {
   const { medications } = useMedications();
   const [dateRange, setDateRange] = useState('30');
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Chart refs to prevent canvas reuse errors
+  const painChartRef = useRef(null);
+  const locationChartRef = useRef(null);
+  
+  // Cleanup charts on unmount or re-render
+  useEffect(() => {
+    return () => {
+      if (painChartRef.current) {
+        painChartRef.current.destroy();
+      }
+      if (locationChartRef.current) {
+        locationChartRef.current.destroy();
+      }
+    };
+  }, [dateRange]); // Re-run when dateRange changes
 
   const filteredData = useMemo(() => {
     const days = parseInt(dateRange);
@@ -385,7 +426,20 @@ const Reports = () => {
             <h3>Pain Level Trend</h3>
           </div>
           <div className="chart-container">
-            <Line data={painChartData} options={chartOptions} />
+            <Line 
+              key={`pain-chart-${dateRange}`}
+              ref={painChartRef}
+              data={painChartData} 
+              options={{
+                ...chartOptions,
+                plugins: {
+                  ...chartOptions.plugins,
+                  legend: {
+                    display: false,
+                  },
+                },
+              }} 
+            />
           </div>
         </div>
 
@@ -395,7 +449,20 @@ const Reports = () => {
             <h3>Most Affected Areas</h3>
           </div>
           <div className="chart-container">
-            <Bar data={locationChartData} options={barChartOptions} />
+            <Bar 
+              key={`location-chart-${dateRange}`}
+              ref={locationChartRef}
+              data={locationChartData} 
+              options={{
+                ...barChartOptions,
+                plugins: {
+                  ...barChartOptions.plugins,
+                  legend: {
+                    display: false,
+                  },
+                },
+              }} 
+            />
           </div>
         </div>
       </div>
