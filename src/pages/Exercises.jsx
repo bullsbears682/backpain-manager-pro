@@ -22,7 +22,12 @@ import {
   Timer,
   Users,
   Bookmark,
-  BookmarkCheck
+  BookmarkCheck,
+  Activity,
+  Dumbbell,
+  Flame,
+  Shield,
+  RefreshCw
 } from 'lucide-react';
 
 const Exercises = () => {
