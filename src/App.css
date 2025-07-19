@@ -1405,6 +1405,36 @@ h3 {
 }
 
 /* =============================================================================
+   CHART.JS COMPONENTS
+============================================================================= */
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  margin: var(--space-4) 0;
+}
+
+.chart-container canvas {
+  max-height: 300px !important;
+}
+
+/* Grid for Reports */
+.grid {
+  display: grid;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* =============================================================================
    UTILITY CLASSES
 ============================================================================= */
 
