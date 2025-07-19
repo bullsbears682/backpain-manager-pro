@@ -227,9 +227,24 @@ const Exercises = () => {
     }
   }, [safeExercises, filterCategory, filterDifficulty, filterPainLevel, searchTerm, sortBy]);
 
+  // Function to sanitize exercise data
+  const sanitizeExercise = (exercise) => {
+    if (!exercise) return null;
+    
+    return {
+      ...exercise,
+      instructions: Array.isArray(exercise.instructions) ? exercise.instructions : [],
+      benefits: Array.isArray(exercise.benefits) ? exercise.benefits : [],
+      precautions: Array.isArray(exercise.precautions) ? exercise.precautions : [],
+      modifications: Array.isArray(exercise.modifications) ? exercise.modifications : [],
+      targetAreas: Array.isArray(exercise.targetAreas) ? exercise.targetAreas : []
+    };
+  };
+
   const startExercise = (exercise) => {
     try {
-      setSelectedExercise(exercise);
+      const sanitizedExercise = sanitizeExercise(exercise);
+      setSelectedExercise(sanitizedExercise);
       setTimeRemaining(exercise.duration || 0);
       setCurrentSet(1);
       setIsRestMode(false);
@@ -648,7 +663,8 @@ const Exercises = () => {
               <button
                 className="btn btn-secondary"
                 onClick={() => {
-                  setSelectedExercise(exercise);
+                  const sanitizedExercise = sanitizeExercise(exercise);
+                  setSelectedExercise(sanitizedExercise);
                   setShowExerciseModal(true);
                 }}
                 style={{ padding: '0.75rem' }}
@@ -698,54 +714,86 @@ const Exercises = () => {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Instructions</h4>
                   <ol className="exercise-instructions">
-                    {selectedExercise && selectedExercise.instructions && Array.isArray(selectedExercise.instructions) ? 
-                      selectedExercise.instructions.map((instruction, index) => (
-                        <li key={index}>{instruction}</li>
-                      )) : (
-                        <li>No instructions available</li>
-                      )}
+                    {(() => {
+                      try {
+                        const instructions = selectedExercise?.instructions;
+                        if (instructions && Array.isArray(instructions) && instructions.length > 0) {
+                          return instructions.map((instruction, index) => (
+                            <li key={`instruction-${index}`}>{instruction || `Step ${index + 1}`}</li>
+                          ));
+                        }
+                        return <li>No instructions available</li>;
+                      } catch (error) {
+                        console.error('Error rendering instructions:', error);
+                        return <li>Error loading instructions</li>;
+                      }
+                    })()}
                   </ol>
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Benefits</h4>
                   <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                    {selectedExercise && selectedExercise.benefits && Array.isArray(selectedExercise.benefits) ? 
-                      selectedExercise.benefits.map((benefit, index) => (
-                        <li key={index}>{benefit}</li>
-                      )) : (
-                        <li>No benefits listed</li>
-                      )}
+                    {(() => {
+                      try {
+                        const benefits = selectedExercise?.benefits;
+                        if (benefits && Array.isArray(benefits) && benefits.length > 0) {
+                          return benefits.map((benefit, index) => (
+                            <li key={`benefit-${index}`}>{benefit || `Benefit ${index + 1}`}</li>
+                          ));
+                        }
+                        return <li>No benefits listed</li>;
+                      } catch (error) {
+                        console.error('Error rendering benefits:', error);
+                        return <li>Error loading benefits</li>;
+                      }
+                    })()}
                   </ul>
                 </div>
 
-                {selectedExercise.precautions && (
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Precautions</h4>
-                    <ul style={{ paddingLeft: '1.5rem', color: 'var(--warning-600)' }}>
-                      {selectedExercise && selectedExercise.precautions && Array.isArray(selectedExercise.precautions) ? 
-                        selectedExercise.precautions.map((precaution, index) => (
-                          <li key={index}>{precaution}</li>
-                        )) : (
-                          <li>No precautions listed</li>
-                        )}
-                    </ul>
-                  </div>
-                )}
+                {(() => {
+                  try {
+                    const precautions = selectedExercise?.precautions;
+                    if (precautions && Array.isArray(precautions) && precautions.length > 0) {
+                      return (
+                        <div style={{ marginBottom: '1.5rem' }}>
+                          <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Precautions</h4>
+                          <ul style={{ paddingLeft: '1.5rem', color: 'var(--warning-600)' }}>
+                            {precautions.map((precaution, index) => (
+                              <li key={`precaution-${index}`}>{precaution || `Precaution ${index + 1}`}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    }
+                    return null;
+                  } catch (error) {
+                    console.error('Error rendering precautions:', error);
+                    return null;
+                  }
+                })()}
 
-                {selectedExercise.modifications && (
-                  <div>
-                    <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Modifications</h4>
-                    <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                      {selectedExercise && selectedExercise.modifications && Array.isArray(selectedExercise.modifications) ? 
-                        selectedExercise.modifications.map((modification, index) => (
-                          <li key={index}>{modification}</li>
-                        )) : (
-                          <li>No modifications available</li>
-                        )}
-                    </ul>
-                  </div>
-                )}
+                {(() => {
+                  try {
+                    const modifications = selectedExercise?.modifications;
+                    if (modifications && Array.isArray(modifications) && modifications.length > 0) {
+                      return (
+                        <div>
+                          <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Modifications</h4>
+                          <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
+                            {modifications.map((modification, index) => (
+                              <li key={`modification-${index}`}>{modification || `Modification ${index + 1}`}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    }
+                    return null;
+                  } catch (error) {
+                    console.error('Error rendering modifications:', error);
+                    return null;
+                  }
+                })()}
               </div>
 
               {/* Timer and Controls */}
