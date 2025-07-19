@@ -58,9 +58,10 @@ const Sidebar = ({ activeTab, onTabChange }) => {
                   onClick={() => onTabChange(item.id)}
                   aria-label={item.label}
                   aria-current={activeTab === item.id ? 'page' : undefined}
+                  title={item.label}
                 >
                   <IconComponent className="icon" />
-                  {item.label}
+                  <span className="nav-label">{item.label}</span>
                 </button>
               </li>
             );

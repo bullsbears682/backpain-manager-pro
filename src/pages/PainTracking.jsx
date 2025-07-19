@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { usePainEntries } from '../hooks/useData';
+import { useNotification } from '../components/Notification';
 import PainScale from '../components/PainScale';
 import { formatDate, formatTime } from '../utils/dateUtils';
-import { Plus, Edit, Trash2, MapPin, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Clock, Save, X } from 'lucide-react';
 
 const PainTracking = () => {
   const { painEntries, addPainEntry, updatePainEntry, deletePainEntry } = usePainEntries();
+  const { showNotification } = useNotification();
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [formData, setFormData] = useState({
@@ -17,6 +19,88 @@ const PainTracking = () => {
     exerciseCompleted: false,
     medicationTaken: false
   });
+
+  // Form submission handler
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (formData.painLevel === 0) {
+      showNotification('Please select a pain level', 'warning');
+      return;
+    }
+
+    if (!formData.location) {
+      showNotification('Please select a pain location', 'warning');
+      return;
+    }
+
+    try {
+      if (editingEntry) {
+        updatePainEntry(editingEntry.id, formData);
+        showNotification('Pain entry updated successfully!', 'success');
+      } else {
+        addPainEntry(formData);
+        showNotification('Pain entry logged successfully!', 'success');
+      }
+      
+      // Reset form
+      setFormData({
+        painLevel: 0,
+        location: '',
+        triggers: '',
+        symptoms: '',
+        notes: '',
+        exerciseCompleted: false,
+        medicationTaken: false
+      });
+      setShowForm(false);
+      setEditingEntry(null);
+    } catch (error) {
+      showNotification('Error saving pain entry. Please try again.', 'error');
+    }
+  };
+
+  // Edit entry handler
+  const handleEdit = (entry) => {
+    setEditingEntry(entry);
+    setFormData({
+      painLevel: entry.painLevel,
+      location: entry.location,
+      triggers: entry.triggers || '',
+      symptoms: entry.symptoms || '',
+      notes: entry.notes || '',
+      exerciseCompleted: entry.exerciseCompleted || false,
+      medicationTaken: entry.medicationTaken || false
+    });
+    setShowForm(true);
+  };
+
+  // Delete entry handler
+  const handleDelete = (entryId) => {
+    if (window.confirm('Are you sure you want to delete this pain entry?')) {
+      try {
+        deletePainEntry(entryId);
+        showNotification('Pain entry deleted successfully!', 'success');
+      } catch (error) {
+        showNotification('Error deleting pain entry. Please try again.', 'error');
+      }
+    }
+  };
+
+  // Cancel form handler
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingEntry(null);
+    setFormData({
+      painLevel: 0,
+      location: '',
+      triggers: '',
+      symptoms: '',
+      notes: '',
+      exerciseCompleted: false,
+      medicationTaken: false
+    });
+  };
 
   const painLocations = [
     'Lower Back',
@@ -260,13 +344,15 @@ const PainTracking = () => {
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                 <button type="submit" className="btn btn-primary">
+                  <Save size={16} />
                   {editingEntry ? 'Update Entry' : 'Save Entry'}
                 </button>
                 <button 
                   type="button" 
                   className="btn btn-secondary"
-                  onClick={resetForm}
+                  onClick={handleCancel}
                 >
+                  <X size={16} />
                   Cancel
                 </button>
               </div>
@@ -336,7 +422,7 @@ const PainTracking = () => {
                         </button>
                         <button
                           className="btn btn-danger btn-small"
-                          onClick={() => deletePainEntry(entry.id)}
+                          onClick={() => handleDelete(entry.id)}
                         >
                           <Trash2 size={14} />
                         </button>

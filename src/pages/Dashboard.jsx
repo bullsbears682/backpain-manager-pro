@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePainEntries, useExercises, useAppointments, useMedications } from '../hooks/useData';
+import { useNotification } from '../components/Notification';
 import { 
   Activity, 
   TrendingUp, 
@@ -44,14 +45,65 @@ import {
   ThumbsUp,
   Layers,
   Compass,
-  Hexagon
+  Hexagon,
+  Play,
+  ExternalLink,
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 
-const Dashboard = () => {
+const Dashboard = ({ onNavigate }) => {
   const { painEntries } = usePainEntries();
   const { exercises } = useExercises();
   const { appointments } = useAppointments();
   const { medications } = useMedications();
+  const { showNotification } = useNotification();
+  
+  // Enhanced navigation with feedback
+  const handleNavigation = (page, message) => {
+    if (onNavigate) {
+      showNotification(`Navigating to ${message}...`, 'info');
+      onNavigate(page);
+    }
+  };
+
+  // Quick action handlers
+  const handleQuickAction = (action) => {
+    switch (action) {
+      case 'track-pain':
+        handleNavigation('pain-tracking', 'Pain Tracking');
+        break;
+      case 'start-exercise':
+        handleNavigation('exercises', 'Exercise Library');
+        break;
+      case 'add-medication':
+        handleNavigation('medications', 'Medication Manager');
+        break;
+      case 'book-appointment':
+        handleNavigation('appointments', 'Appointment Scheduler');
+        break;
+      case 'view-reports':
+        handleNavigation('reports', 'Health Reports');
+        break;
+      case 'education':
+        handleNavigation('education', 'Educational Resources');
+        break;
+      case 'settings':
+        handleNavigation('settings', 'Settings');
+        break;
+      case 'sync':
+        showNotification('Syncing dashboard data...', 'info');
+        // Trigger re-render or refresh data
+        setIsVisible(false);
+        setTimeout(() => {
+          setIsVisible(true);
+          showNotification('Dashboard refreshed successfully!', 'success');
+        }, 1000);
+        break;
+      default:
+        showNotification('Feature coming soon!', 'info');
+    }
+  };
 
   // Animation states
   const [isVisible, setIsVisible] = useState(false);
@@ -287,6 +339,155 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Quick Actions Grid */}
+      <div className="mb-8">
+        <h2 className="section-title mb-6">Quick Actions</h2>
+        <div className="grid-4">
+          {[
+            {
+              icon: <Activity size={24} />,
+              title: 'Track Pain',
+              description: 'Log your current pain level',
+              action: 'track-pain',
+              color: '#ef4444',
+              gradient: 'linear-gradient(135deg, #ef4444, #dc2626)'
+            },
+            {
+              icon: <Dumbbell size={24} />,
+              title: 'Start Exercise',
+              description: 'Begin your workout routine',
+              action: 'start-exercise',
+              color: '#8b5cf6',
+              gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+            },
+            {
+              icon: <Pill size={24} />,
+              title: 'Add Medication',
+              description: 'Log medication intake',
+              action: 'add-medication',
+              color: '#10b981',
+              gradient: 'linear-gradient(135deg, #10b981, #059669)'
+            },
+            {
+              icon: <Calendar size={24} />,
+              title: 'Book Appointment',
+              description: 'Schedule with your doctor',
+              action: 'book-appointment',
+              color: '#6366f1',
+              gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)'
+            },
+            {
+              icon: <BarChart3 size={24} />,
+              title: 'View Reports',
+              description: 'Check your progress',
+              action: 'view-reports',
+              color: '#06b6d4',
+              gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)'
+            },
+            {
+              icon: <BookOpen size={24} />,
+              title: 'Learn More',
+              description: 'Educational resources',
+              action: 'education',
+              color: '#f97316',
+              gradient: 'linear-gradient(135deg, #f97316, #ea580c)'
+            },
+            {
+              icon: <Settings size={24} />,
+              title: 'Settings',
+              description: 'Customize your experience',
+              action: 'settings',
+              color: '#64748b',
+              gradient: 'linear-gradient(135deg, #64748b, #475569)'
+            },
+            {
+              icon: <RefreshCw size={24} />,
+              title: 'Sync Data',
+              description: 'Refresh your dashboard',
+              action: 'sync',
+              color: '#8b5cf6',
+              gradient: 'linear-gradient(135deg, #8b5cf6, #a855f7)'
+            }
+          ].map((action, index) => (
+            <div
+              key={index}
+              className="card"
+              style={{
+                padding: '1.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              onClick={() => handleQuickAction(action.action)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                e.currentTarget.style.boxShadow = `0 20px 40px ${action.color}20`;
+                e.currentTarget.style.borderColor = `${action.color}40`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: action.gradient
+              }} />
+              
+              <div style={{
+                width: '50px',
+                height: '50px',
+                background: action.gradient,
+                borderRadius: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+                color: 'white'
+              }}>
+                {action.icon}
+              </div>
+              
+              <h3 style={{
+                color: 'white',
+                fontSize: '1.1rem',
+                fontWeight: '700',
+                marginBottom: '0.5rem',
+                margin: 0
+              }}>
+                {action.title}
+              </h3>
+              
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '0.85rem',
+                margin: 0,
+                lineHeight: 1.4
+              }}>
+                {action.description}
+              </p>
+              
+              <div style={{
+                position: 'absolute',
+                bottom: '1rem',
+                right: '1rem',
+                opacity: 0.3,
+                transition: 'opacity 0.3s ease'
+              }}>
+                <ArrowRight size={16} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Ultra-Modern Stats Grid */}
       <div className="stats-grid mb-8">
         {[
@@ -356,6 +557,10 @@ const Dashboard = () => {
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               transform: activeMetric === index ? 'scale(1.05)' : 'scale(1)',
               zIndex: activeMetric === index ? 10 : 1
+            }}
+            onClick={() => {
+              const actions = ['track-pain', 'start-exercise', 'start-exercise', 'start-exercise', 'add-medication', 'book-appointment'];
+              handleQuickAction(actions[index] || 'view-reports');
             }}
             onMouseEnter={() => setActiveMetric(index)}
             onMouseLeave={() => setActiveMetric(null)}
@@ -677,7 +882,11 @@ const Dashboard = () => {
             ))}
           </div>
 
-          <button className="btn btn-success" style={{ width: '100%' }}>
+          <button 
+            className="btn btn-success" 
+            style={{ width: '100%' }}
+            onClick={() => handleQuickAction('start-exercise')}
+          >
             <Dumbbell size={16} />
             Start Exercise
           </button>
@@ -872,32 +1081,37 @@ const Dashboard = () => {
       </div>
 
       {/* Floating Action Button */}
-      <div style={{
-        position: 'fixed',
-        bottom: '2rem',
-        right: '2rem',
-        width: '60px',
-        height: '60px',
-        background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        cursor: 'pointer',
-        boxShadow: '0 8px 25px rgba(139, 92, 246, 0.4)',
-        transition: 'all 0.3s ease',
-        zIndex: 1000,
-        animation: 'float 3s ease-in-out infinite'
-      }}
-      onMouseEnter={(e) => {
-        e.target.style.transform = 'scale(1.1)';
-        e.target.style.boxShadow = '0 12px 35px rgba(139, 92, 246, 0.6)';
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.transform = 'scale(1)';
-        e.target.style.boxShadow = '0 8px 25px rgba(139, 92, 246, 0.4)';
-      }}
+      <div 
+        style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          width: '60px',
+          height: '60px',
+          background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          cursor: 'pointer',
+          boxShadow: '0 8px 25px rgba(139, 92, 246, 0.4)',
+          transition: 'all 0.3s ease',
+          zIndex: 1000,
+          animation: 'float 3s ease-in-out infinite'
+        }}
+        onClick={() => handleQuickAction('track-pain')}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.boxShadow = '0 12px 35px rgba(139, 92, 246, 0.6)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 8px 25px rgba(139, 92, 246, 0.4)';
+        }}
+        title="Quick Pain Tracking"
+        role="button"
+        aria-label="Track pain level"
       >
         <Plus size={24} />
       </div>
