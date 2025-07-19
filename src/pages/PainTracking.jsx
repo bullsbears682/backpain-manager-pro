@@ -135,20 +135,6 @@ const PainTracking = () => {
     'Radiating pain'
   ];
 
-  const handleEdit = (entry) => {
-    setEditingEntry(entry);
-    setFormData({
-      painLevel: entry.painLevel,
-      location: entry.location || '',
-      triggers: entry.triggers || '',
-      symptoms: entry.symptoms || '',
-      notes: entry.notes || '',
-      exerciseCompleted: entry.exerciseCompleted || false,
-      medicationTaken: entry.medicationTaken || false
-    });
-    setShowForm(true);
-  };
-
   const sortedEntries = useMemo(() => {
     return [...painEntries].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [painEntries]);
