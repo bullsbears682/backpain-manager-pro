@@ -33,10 +33,21 @@ import {
 } from 'lucide-react';
 
 const Exercises = () => {
-  const { exercises } = useExercises();
+  // ULTRA-SAFE EXERCISE DATA LOADING
+  let exerciseData = null;
+  let safeExercises = [];
   
-  // Extra safety check for exercises
-  const safeExercises = exercises && Array.isArray(exercises) ? exercises : [];
+  try {
+    const hookResult = useExercises();
+    exerciseData = hookResult || {};
+    const rawExercises = exerciseData.exercises;
+    safeExercises = (rawExercises && Array.isArray(rawExercises)) ? rawExercises : [];
+  } catch (error) {
+    console.error('Error loading exercises:', error);
+    safeExercises = [];
+  }
+
+  // SAFE STATE INITIALIZATION
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -44,24 +55,25 @@ const Exercises = () => {
   const [isRestMode, setIsRestMode] = useState(false);
   const [restTime, setRestTime] = useState(30);
   
-  // Filtering and search
+  // Filtering and search - SAFE DEFAULTS
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterDifficulty, setFilterDifficulty] = useState('All');
   const [filterPainLevel, setFilterPainLevel] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
   
-  // Exercise tracking
+  // Exercise tracking - SAFE DEFAULTS
   const [completedExercises, setCompletedExercises] = useState(new Set());
   const [favoriteExercises, setFavoriteExercises] = useState(new Set());
   const [exerciseHistory, setExerciseHistory] = useState([]);
   
-  // UI states
+  // UI states - SAFE DEFAULTS
   const [showFilters, setShowFilters] = useState(false);
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // SAFE CONSTANTS - GUARANTEED TO BE ARRAYS
   const categories = ['All', 'Flexibility', 'Strengthening', 'Mobility', 'Aerobic', 'Balance', 'Relaxation', 'Mind-Body', 'Functional', 'Workplace', 'Recovery', 'Dynamic', 'Posture'];
   const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
   const painLevels = ['All', 'High', 'Medium', 'Low'];
@@ -75,30 +87,46 @@ const Exercises = () => {
 
   // Load saved data from localStorage
   useEffect(() => {
-    const savedCompleted = localStorage.getItem('completedExercises');
-    const savedFavorites = localStorage.getItem('favoriteExercises');
-    const savedHistory = localStorage.getItem('exerciseHistory');
-    
-    if (savedCompleted) setCompletedExercises(new Set(JSON.parse(savedCompleted)));
-    if (savedFavorites) setFavoriteExercises(new Set(JSON.parse(savedFavorites)));
-    if (savedHistory) setExerciseHistory(JSON.parse(savedHistory));
+    try {
+      const savedCompleted = localStorage.getItem('completedExercises');
+      const savedFavorites = localStorage.getItem('favoriteExercises');
+      const savedHistory = localStorage.getItem('exerciseHistory');
+      
+      if (savedCompleted) setCompletedExercises(new Set(JSON.parse(savedCompleted)));
+      if (savedFavorites) setFavoriteExercises(new Set(JSON.parse(savedFavorites)));
+      if (savedHistory) setExerciseHistory(JSON.parse(savedHistory));
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+    }
     
     // Set loading to false after a brief delay to ensure exercises are loaded
-    const timer = setTimeout(() => setIsLoading(false), 500);
+    const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
   // Save data to localStorage
   useEffect(() => {
-    localStorage.setItem('completedExercises', JSON.stringify([...completedExercises]));
+    try {
+      localStorage.setItem('completedExercises', JSON.stringify([...completedExercises]));
+    } catch (error) {
+      console.error('Error saving completed exercises:', error);
+    }
   }, [completedExercises]);
 
   useEffect(() => {
-    localStorage.setItem('favoriteExercises', JSON.stringify([...favoriteExercises]));
+    try {
+      localStorage.setItem('favoriteExercises', JSON.stringify([...favoriteExercises]));
+    } catch (error) {
+      console.error('Error saving favorite exercises:', error);
+    }
   }, [favoriteExercises]);
 
   useEffect(() => {
-    localStorage.setItem('exerciseHistory', JSON.stringify(exerciseHistory));
+    try {
+      localStorage.setItem('exerciseHistory', JSON.stringify(exerciseHistory));
+    } catch (error) {
+      console.error('Error saving exercise history:', error);
+    }
   }, [exerciseHistory]);
 
   // Timer logic
@@ -139,63 +167,77 @@ const Exercises = () => {
     }
   };
 
-  // Filtered and sorted exercises
+  // ULTRA-SAFE Filtered and sorted exercises
   const filteredExercises = useMemo(() => {
-    if (!safeExercises || !Array.isArray(safeExercises) || safeExercises.length === 0) {
+    try {
+      if (!safeExercises || !Array.isArray(safeExercises) || safeExercises.length === 0) {
+        return [];
+      }
+      
+      let filtered = safeExercises.filter(exercise => {
+        // Safety checks for exercise properties
+        if (!exercise || typeof exercise !== 'object') return false;
+        
+        const matchesCategory = filterCategory === 'All' || exercise.category === filterCategory;
+        const matchesDifficulty = filterDifficulty === 'All' || exercise.difficulty === filterDifficulty;
+        const matchesPainLevel = filterPainLevel === 'All' || exercise.painReliefLevel === filterPainLevel;
+        
+        const exerciseName = exercise.name || '';
+        const exerciseDescription = exercise.description || '';
+        const exerciseTargetAreas = Array.isArray(exercise.targetAreas) ? exercise.targetAreas : [];
+        
+        const matchesSearch = exerciseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             exerciseDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             exerciseTargetAreas.some(area => 
+                               typeof area === 'string' && area.toLowerCase().includes(searchTerm.toLowerCase())
+                             );
+        
+        return matchesCategory && matchesDifficulty && matchesPainLevel && matchesSearch;
+      });
+
+      // Sort exercises
+      filtered.sort((a, b) => {
+        try {
+          switch (sortBy) {
+            case 'name':
+              return (a.name || '').localeCompare(b.name || '');
+            case 'difficulty':
+              const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
+              return (difficultyOrder[a.difficulty] || 0) - (difficultyOrder[b.difficulty] || 0);
+            case 'duration':
+              return (a.duration || 0) - (b.duration || 0);
+            case 'calories':
+              return (b.caloriesBurned || 0) - (a.caloriesBurned || 0);
+            case 'painRelief':
+              const painOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+              return (painOrder[b.painReliefLevel] || 0) - (painOrder[a.painReliefLevel] || 0);
+            default:
+              return 0;
+          }
+        } catch (error) {
+          console.error('Error sorting exercises:', error);
+          return 0;
+        }
+      });
+
+      return filtered;
+    } catch (error) {
+      console.error('Error filtering exercises:', error);
       return [];
     }
-    
-    let filtered = safeExercises.filter(exercise => {
-      // Safety checks for exercise properties
-      if (!exercise || typeof exercise !== 'object') return false;
-      
-      const matchesCategory = filterCategory === 'All' || exercise.category === filterCategory;
-      const matchesDifficulty = filterDifficulty === 'All' || exercise.difficulty === filterDifficulty;
-      const matchesPainLevel = filterPainLevel === 'All' || exercise.painReliefLevel === filterPainLevel;
-      
-      const exerciseName = exercise.name || '';
-      const exerciseDescription = exercise.description || '';
-      const exerciseTargetAreas = Array.isArray(exercise.targetAreas) ? exercise.targetAreas : [];
-      
-      const matchesSearch = exerciseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           exerciseDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           exerciseTargetAreas.some(area => 
-                             typeof area === 'string' && area.toLowerCase().includes(searchTerm.toLowerCase())
-                           );
-      
-      return matchesCategory && matchesDifficulty && matchesPainLevel && matchesSearch;
-    });
-
-    // Sort exercises
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'difficulty':
-          const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
-          return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
-        case 'duration':
-          return a.duration - b.duration;
-        case 'calories':
-          return (b.caloriesBurned || 0) - (a.caloriesBurned || 0);
-        case 'painRelief':
-          const painOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-          return painOrder[b.painReliefLevel] - painOrder[a.painReliefLevel];
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
   }, [safeExercises, filterCategory, filterDifficulty, filterPainLevel, searchTerm, sortBy]);
 
   const startExercise = (exercise) => {
-    setSelectedExercise(exercise);
-    setTimeRemaining(exercise.duration);
-    setCurrentSet(1);
-    setIsRestMode(false);
-    setIsTimerRunning(false);
-    setShowExerciseModal(true);
+    try {
+      setSelectedExercise(exercise);
+      setTimeRemaining(exercise.duration || 0);
+      setCurrentSet(1);
+      setIsRestMode(false);
+      setIsTimerRunning(false);
+      setShowExerciseModal(true);
+    } catch (error) {
+      console.error('Error starting exercise:', error);
+    }
   };
 
   const toggleTimer = () => {
@@ -203,50 +245,67 @@ const Exercises = () => {
   };
 
   const resetTimer = () => {
-    if (selectedExercise) {
-      setTimeRemaining(selectedExercise.duration);
-      setCurrentSet(1);
-      setIsRestMode(false);
-      setIsTimerRunning(false);
+    try {
+      if (selectedExercise) {
+        setTimeRemaining(selectedExercise.duration || 0);
+        setCurrentSet(1);
+        setIsRestMode(false);
+        setIsTimerRunning(false);
+      }
+    } catch (error) {
+      console.error('Error resetting timer:', error);
     }
   };
 
   const completeExercise = () => {
-    if (selectedExercise) {
-      setCompletedExercises(prev => new Set([...prev, selectedExercise.id]));
-      
-      // Add to history
-      const historyEntry = {
-        exerciseId: selectedExercise.id,
-        exerciseName: selectedExercise.name,
-        completedAt: new Date().toISOString(),
-        duration: selectedExercise.duration,
-        sets: selectedExercise.sets,
-        caloriesBurned: selectedExercise.caloriesBurned || 0
-      };
-      
-      setExerciseHistory(prev => [historyEntry, ...prev.slice(0, 49)]); // Keep last 50 entries
-      setShowExerciseModal(false);
-      setSelectedExercise(null);
+    try {
+      if (selectedExercise) {
+        setCompletedExercises(prev => new Set([...prev, selectedExercise.id]));
+        
+        // Add to history
+        const historyEntry = {
+          exerciseId: selectedExercise.id,
+          exerciseName: selectedExercise.name,
+          completedAt: new Date().toISOString(),
+          duration: selectedExercise.duration,
+          sets: selectedExercise.sets,
+          caloriesBurned: selectedExercise.caloriesBurned || 0
+        };
+        
+        setExerciseHistory(prev => [historyEntry, ...prev.slice(0, 49)]); // Keep last 50 entries
+        setShowExerciseModal(false);
+        setSelectedExercise(null);
+      }
+    } catch (error) {
+      console.error('Error completing exercise:', error);
     }
   };
 
   const toggleFavorite = (exerciseId) => {
-    setFavoriteExercises(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(exerciseId)) {
-        newFavorites.delete(exerciseId);
-      } else {
-        newFavorites.add(exerciseId);
-      }
-      return newFavorites;
-    });
+    try {
+      setFavoriteExercises(prev => {
+        const newFavorites = new Set(prev);
+        if (newFavorites.has(exerciseId)) {
+          newFavorites.delete(exerciseId);
+        } else {
+          newFavorites.add(exerciseId);
+        }
+        return newFavorites;
+      });
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    try {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '0:00';
+    }
   };
 
   const getDifficultyColor = (difficulty) => {
