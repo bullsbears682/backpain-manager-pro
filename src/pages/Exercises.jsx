@@ -1,27 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useExercises } from '../hooks/useData';
-import { Play, Pause, RotateCcw, Clock, Award, Filter, Search } from 'lucide-react';
+import { 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Clock, 
+  Award, 
+  Filter, 
+  Search, 
+  Star,
+  Heart,
+  Zap,
+  Target,
+  TrendingUp,
+  CheckCircle,
+  X,
+  Info,
+  Settings,
+  Calendar,
+  BarChart3,
+  Timer,
+  Users,
+  Bookmark,
+  BookmarkCheck
+} from 'lucide-react';
 
 const Exercises = () => {
   const { exercises } = useExercises();
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [isRestMode, setIsRestMode] = useState(false);
+  const [restTime, setRestTime] = useState(30);
+  
+  // Filtering and search
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterDifficulty, setFilterDifficulty] = useState('All');
+  const [filterPainLevel, setFilterPainLevel] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  
+  // Exercise tracking
+  const [completedExercises, setCompletedExercises] = useState(new Set());
+  const [favoriteExercises, setFavoriteExercises] = useState(new Set());
+  const [exerciseHistory, setExerciseHistory] = useState([]);
+  
+  // UI states
+  const [showFilters, setShowFilters] = useState(false);
+  const [showExerciseModal, setShowExerciseModal] = useState(false);
 
-  const categories = ['All', 'Flexibility', 'Strengthening', 'Mobility', 'Stretching'];
+  const categories = ['All', 'Flexibility', 'Strengthening', 'Mobility', 'Aerobic', 'Balance', 'Relaxation', 'Mind-Body', 'Functional', 'Workplace', 'Recovery', 'Dynamic', 'Posture'];
   const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
+  const painLevels = ['All', 'High', 'Medium', 'Low'];
+  const sortOptions = [
+    { value: 'name', label: 'Name A-Z' },
+    { value: 'difficulty', label: 'Difficulty' },
+    { value: 'duration', label: 'Duration' },
+    { value: 'calories', label: 'Calories' },
+    { value: 'painRelief', label: 'Pain Relief' }
+  ];
 
-  const filteredExercises = exercises.filter(exercise => {
-    const matchesCategory = filterCategory === 'All' || exercise.category === filterCategory;
-    const matchesDifficulty = filterDifficulty === 'All' || exercise.difficulty === filterDifficulty;
-    const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         exercise.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesDifficulty && matchesSearch;
-  });
+  // Load saved data from localStorage
+  useEffect(() => {
+    const savedCompleted = localStorage.getItem('completedExercises');
+    const savedFavorites = localStorage.getItem('favoriteExercises');
+    const savedHistory = localStorage.getItem('exerciseHistory');
+    
+    if (savedCompleted) setCompletedExercises(new Set(JSON.parse(savedCompleted)));
+    if (savedFavorites) setFavoriteExercises(new Set(JSON.parse(savedFavorites)));
+    if (savedHistory) setExerciseHistory(JSON.parse(savedHistory));
+  }, []);
 
+  // Save data to localStorage
+  useEffect(() => {
+    localStorage.setItem('completedExercises', JSON.stringify([...completedExercises]));
+  }, [completedExercises]);
+
+  useEffect(() => {
+    localStorage.setItem('favoriteExercises', JSON.stringify([...favoriteExercises]));
+  }, [favoriteExercises]);
+
+  useEffect(() => {
+    localStorage.setItem('exerciseHistory', JSON.stringify(exerciseHistory));
+  }, [exerciseHistory]);
+
+  // Timer logic
   useEffect(() => {
     let interval;
     if (isTimerRunning && timeRemaining > 0) {
@@ -29,6 +94,7 @@ const Exercises = () => {
         setTimeRemaining(time => {
           if (time <= 1) {
             setIsTimerRunning(false);
+            handleTimerComplete();
             return 0;
           }
           return time - 1;
@@ -38,10 +104,69 @@ const Exercises = () => {
     return () => clearInterval(interval);
   }, [isTimerRunning, timeRemaining]);
 
+  const handleTimerComplete = () => {
+    if (isRestMode) {
+      setIsRestMode(false);
+      setCurrentSet(prev => prev + 1);
+      if (selectedExercise) {
+        setTimeRemaining(selectedExercise.duration);
+      }
+    } else {
+      // Exercise set completed
+      if (selectedExercise && currentSet < selectedExercise.sets) {
+        setIsRestMode(true);
+        setTimeRemaining(restTime);
+        setIsTimerRunning(true);
+      } else {
+        // All sets completed
+        completeExercise();
+      }
+    }
+  };
+
+  // Filtered and sorted exercises
+  const filteredExercises = useMemo(() => {
+    let filtered = exercises.filter(exercise => {
+      const matchesCategory = filterCategory === 'All' || exercise.category === filterCategory;
+      const matchesDifficulty = filterDifficulty === 'All' || exercise.difficulty === filterDifficulty;
+      const matchesPainLevel = filterPainLevel === 'All' || exercise.painReliefLevel === filterPainLevel;
+      const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           exercise.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           exercise.targetAreas.some(area => area.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      return matchesCategory && matchesDifficulty && matchesPainLevel && matchesSearch;
+    });
+
+    // Sort exercises
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'difficulty':
+          const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
+          return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        case 'duration':
+          return a.duration - b.duration;
+        case 'calories':
+          return (b.caloriesBurned || 0) - (a.caloriesBurned || 0);
+        case 'painRelief':
+          const painOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+          return painOrder[b.painReliefLevel] - painOrder[a.painReliefLevel];
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [exercises, filterCategory, filterDifficulty, filterPainLevel, searchTerm, sortBy]);
+
   const startExercise = (exercise) => {
     setSelectedExercise(exercise);
     setTimeRemaining(exercise.duration);
+    setCurrentSet(1);
+    setIsRestMode(false);
     setIsTimerRunning(false);
+    setShowExerciseModal(true);
   };
 
   const toggleTimer = () => {
@@ -49,291 +174,508 @@ const Exercises = () => {
   };
 
   const resetTimer = () => {
-    setIsTimerRunning(false);
-    setTimeRemaining(selectedExercise?.duration || 0);
+    if (selectedExercise) {
+      setTimeRemaining(selectedExercise.duration);
+      setCurrentSet(1);
+      setIsRestMode(false);
+      setIsTimerRunning(false);
+    }
+  };
+
+  const completeExercise = () => {
+    if (selectedExercise) {
+      setCompletedExercises(prev => new Set([...prev, selectedExercise.id]));
+      
+      // Add to history
+      const historyEntry = {
+        exerciseId: selectedExercise.id,
+        exerciseName: selectedExercise.name,
+        completedAt: new Date().toISOString(),
+        duration: selectedExercise.duration,
+        sets: selectedExercise.sets,
+        caloriesBurned: selectedExercise.caloriesBurned || 0
+      };
+      
+      setExerciseHistory(prev => [historyEntry, ...prev.slice(0, 49)]); // Keep last 50 entries
+      setShowExerciseModal(false);
+      setSelectedExercise(null);
+    }
+  };
+
+  const toggleFavorite = (exerciseId) => {
+    setFavoriteExercises(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(exerciseId)) {
+        newFavorites.delete(exerciseId);
+      } else {
+        newFavorites.add(exerciseId);
+      }
+      return newFavorites;
+    });
   };
 
   const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'Beginner': return '#48bb78';
-      case 'Intermediate': return '#ed8936';
-      case 'Advanced': return '#f56565';
-      default: return '#667eea';
+      case 'Beginner': return '#10b981';
+      case 'Intermediate': return '#f59e0b';
+      case 'Advanced': return '#ef4444';
+      default: return '#6b7280';
     }
   };
 
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case 'Flexibility': return '#667eea';
-      case 'Strengthening': return '#f56565';
-      case 'Mobility': return '#48bb78';
-      case 'Stretching': return '#ed8936';
-      default: return '#718096';
+  const getPainReliefColor = (level) => {
+    switch (level) {
+      case 'High': return '#10b981';
+      case 'Medium': return '#f59e0b';
+      case 'Low': return '#6b7280';
+      default: return '#6b7280';
     }
   };
 
   return (
     <div>
       <div className="page-header">
-        <h2>Exercise Library</h2>
-        <p>Guided exercises designed specifically for back pain relief and prevention</p>
+        <div>
+          <h2>Exercise Library</h2>
+          <p>Comprehensive back pain relief exercises and wellness routines</p>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderRadius: '2rem',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#059669'
+          }}>
+            {filteredExercises.length} Exercises Available
+          </div>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={16} />
+            Filters
+          </button>
+        </div>
       </div>
 
-      {/* Exercise Player Modal */}
-      {selectedExercise && (
-        <div className="modal-overlay" onClick={() => setSelectedExercise(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">{selectedExercise.name}</h3>
-              <button className="modal-close" onClick={() => setSelectedExercise(null)}>
-                ×
-              </button>
-            </div>
-            
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-              <div style={{
-                fontSize: '3rem',
-                fontWeight: '700',
-                color: '#667eea',
-                marginBottom: '1rem'
-              }}>
-                {formatTime(timeRemaining)}
+      {/* Enhanced Filter Section */}
+      {showFilters && (
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Search Exercises</label>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Search by name, description, or target area..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ paddingLeft: '40px' }}
+                />
               </div>
-              
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                <button 
-                  className="btn btn-primary"
-                  onClick={toggleTimer}
-                  disabled={timeRemaining === 0}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Category</label>
+              <select
+                className="form-select"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Difficulty</label>
+              <select
+                className="form-select"
+                value={filterDifficulty}
+                onChange={(e) => setFilterDifficulty(e.target.value)}
+              >
+                {difficulties.map(diff => (
+                  <option key={diff} value={diff}>{diff}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Pain Relief</label>
+              <select
+                className="form-select"
+                value={filterPainLevel}
+                onChange={(e) => setFilterPainLevel(e.target.value)}
+              >
+                {painLevels.map(level => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Sort By</label>
+              <select
+                className="form-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                {sortOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">View Mode</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setViewMode('grid')}
+                  style={{ flex: 1 }}
                 >
-                  {isTimerRunning ? <Pause size={16} /> : <Play size={16} />}
-                  {isTimerRunning ? 'Pause' : 'Start'}
+                  Grid
                 </button>
-                <button className="btn btn-secondary" onClick={resetTimer}>
-                  <RotateCcw size={16} />
-                  Reset
+                <button
+                  className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setViewMode('list')}
+                  style={{ flex: 1 }}
+                >
+                  List
                 </button>
               </div>
             </div>
-
-            <div style={{ marginBottom: '2rem' }}>
-              <h4 style={{ marginBottom: '1rem', color: '#2d3748' }}>Instructions:</h4>
-              <ol className="exercise-instructions">
-                {selectedExercise.instructions.map((instruction, index) => (
-                  <li key={index}>{instruction}</li>
-                ))}
-              </ol>
-            </div>
-
-            <div>
-              <h4 style={{ marginBottom: '1rem', color: '#2d3748' }}>Benefits:</h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {selectedExercise.benefits.map((benefit, index) => (
-                  <span
-                    key={index}
-                    style={{
-                      padding: '0.25rem 0.75rem',
-                      backgroundColor: '#48bb78',
-                      color: 'white',
-                      borderRadius: '1rem',
-                      fontSize: '0.875rem'
-                    }}
-                  >
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {timeRemaining === 0 && (
-              <div style={{
-                marginTop: '2rem',
-                padding: '1rem',
-                backgroundColor: '#f0fff4',
-                border: '2px solid #48bb78',
-                borderRadius: '0.5rem',
-                textAlign: 'center'
-              }}>
-                <Award size={24} color="#48bb78" style={{ marginBottom: '0.5rem' }} />
-                <div style={{ color: '#2d3748', fontWeight: '600' }}>
-                  Exercise completed! Great job!
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <div className="card-content">
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Search size={16} color="#718096" />
-              <input
-                type="text"
-                placeholder="Search exercises..."
-                className="form-input"
-                style={{ width: '200px' }}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Filter size={16} color="#718096" />
-              <select
-                className="form-select"
-                style={{ width: '150px' }}
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-            
-            <select
-              className="form-select"
-              style={{ width: '150px' }}
-              value={filterDifficulty}
-              onChange={(e) => setFilterDifficulty(e.target.value)}
-            >
-              {difficulties.map(difficulty => (
-                <option key={difficulty} value={difficulty}>{difficulty}</option>
-              ))}
-            </select>
+      {/* Quick Stats */}
+      <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: '#6366f1' }}>
+            {completedExercises.size}
           </div>
+          <div className="stat-label">Completed Today</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: '#10b981' }}>
+            {favoriteExercises.size}
+          </div>
+          <div className="stat-label">Favorite Exercises</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: '#f59e0b' }}>
+            {exerciseHistory.reduce((sum, entry) => sum + (entry.caloriesBurned || 0), 0)}
+          </div>
+          <div className="stat-label">Calories Burned (Total)</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: '#ef4444' }}>
+            {Math.floor(exerciseHistory.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60)}
+          </div>
+          <div className="stat-label">Minutes Exercised</div>
         </div>
       </div>
 
-      {/* Exercise Grid */}
-      <div className="grid grid-3">
+      {/* Exercise Grid/List */}
+      <div className={viewMode === 'grid' ? 'grid-3' : ''}>
         {filteredExercises.map(exercise => (
-          <div key={exercise.id} className="exercise-card">
+          <div key={exercise.id} className="exercise-card" style={{ position: 'relative' }}>
+            {/* Favorite button */}
+            <button
+              onClick={() => toggleFavorite(exercise.id)}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'rgba(255, 255, 255, 0.9)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 2,
+                transition: 'all var(--transition-normal)'
+              }}
+            >
+              {favoriteExercises.has(exercise.id) ? (
+                <BookmarkCheck size={18} style={{ color: '#f59e0b' }} />
+              ) : (
+                <Bookmark size={18} style={{ color: 'var(--text-secondary)' }} />
+              )}
+            </button>
+
+            {/* Completion badge */}
+            {completedExercises.has(exercise.id) && (
+              <div style={{
+                position: 'absolute',
+                top: '1rem',
+                left: '1rem',
+                background: '#10b981',
+                color: 'white',
+                borderRadius: '50%',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2
+              }}>
+                <CheckCircle size={16} />
+              </div>
+            )}
+
             <div className="exercise-header">
-              <h3 className="exercise-title">{exercise.name}</h3>
-              <span 
-                className="exercise-category"
-                style={{ backgroundColor: getCategoryColor(exercise.category) }}
-              >
-                {exercise.category}
-              </span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '2rem' }}>{exercise.imageUrl}</span>
+                  <div>
+                    <h3 className="exercise-title">{exercise.name}</h3>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                      {exercise.subcategory}
+                    </div>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                  <span className="exercise-category">{exercise.category}</span>
+                  <span style={{
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '1rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    backgroundColor: `${getDifficultyColor(exercise.difficulty)}20`,
+                    color: getDifficultyColor(exercise.difficulty)
+                  }}>
+                    {exercise.difficulty}
+                  </span>
+                  <span style={{
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '1rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    backgroundColor: `${getPainReliefColor(exercise.painReliefLevel)}20`,
+                    color: getPainReliefColor(exercise.painReliefLevel)
+                  }}>
+                    {exercise.painReliefLevel} Relief
+                  </span>
+                </div>
+              </div>
             </div>
-            
-            <div className="exercise-meta">
+
+            <div className="exercise-meta" style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <Clock size={14} />
-                {Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')}
+                <span>{Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')}</span>
               </div>
-              <div style={{ 
-                color: getDifficultyColor(exercise.difficulty),
-                fontWeight: '600'
-              }}>
-                {exercise.difficulty}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Target size={14} />
+                <span>{exercise.sets} sets × {exercise.reps}</span>
+              </div>
+              {exercise.caloriesBurned && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Zap size={14} />
+                  <span>{exercise.caloriesBurned} cal</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Heart size={14} />
+                <span>{exercise.equipment || 'No equipment'}</span>
               </div>
             </div>
-            
-            <p className="exercise-description">{exercise.description}</p>
-            
+
+            <div className="exercise-description">
+              {exercise.description}
+            </div>
+
             <div style={{ marginBottom: '1rem' }}>
-              <h4 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: '#2d3748' }}>
-                Benefits:
-              </h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                {exercise.benefits.slice(0, 2).map((benefit, index) => (
-                  <span
-                    key={index}
-                    style={{
-                      padding: '0.125rem 0.5rem',
-                      backgroundColor: '#e2e8f0',
-                      color: '#4a5568',
-                      borderRadius: '0.75rem',
-                      fontSize: '0.75rem'
-                    }}
-                  >
-                    {benefit}
+              <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                Target Areas:
+              </div>
+              <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                {exercise.targetAreas.map(area => (
+                  <span key={area} style={{
+                    padding: '0.25rem 0.5rem',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    {area}
                   </span>
                 ))}
-                {exercise.benefits.length > 2 && (
-                  <span style={{ fontSize: '0.75rem', color: '#718096' }}>
-                    +{exercise.benefits.length - 2} more
-                  </span>
-                )}
               </div>
             </div>
-            
-            <button 
-              className="btn btn-primary"
-              style={{ width: '100%' }}
-              onClick={() => startExercise(exercise)}
-            >
-              <Play size={16} />
-              Start Exercise
-            </button>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                className="btn btn-primary"
+                onClick={() => startExercise(exercise)}
+                style={{ flex: 1 }}
+              >
+                <Play size={16} />
+                Start Exercise
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setSelectedExercise(exercise);
+                  setShowExerciseModal(true);
+                }}
+                style={{ padding: '0.75rem' }}
+              >
+                <Info size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
-      {filteredExercises.length === 0 && (
-        <div className="card">
-          <div className="card-content">
-            <p style={{ textAlign: 'center', color: '#718096', padding: '2rem' }}>
-              No exercises found matching your criteria. Try adjusting your filters or search term.
-            </p>
+      {/* Enhanced Exercise Modal */}
+      {showExerciseModal && selectedExercise && (
+        <div className="modal-overlay" onClick={() => setShowExerciseModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '95%' }}>
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">{selectedExercise.name}</h3>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  {selectedExercise.category} • {selectedExercise.difficulty}
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setShowExerciseModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
+              {/* Exercise Details */}
+              <div>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Description</h4>
+                  <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    {selectedExercise.description}
+                  </p>
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Instructions</h4>
+                  <ol className="exercise-instructions">
+                    {selectedExercise.instructions.map((instruction, index) => (
+                      <li key={index}>{instruction}</li>
+                    ))}
+                  </ol>
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Benefits</h4>
+                  <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
+                    {selectedExercise.benefits.map((benefit, index) => (
+                      <li key={index}>{benefit}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {selectedExercise.precautions && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Precautions</h4>
+                    <ul style={{ paddingLeft: '1.5rem', color: 'var(--warning-600)' }}>
+                      {selectedExercise.precautions.map((precaution, index) => (
+                        <li key={index}>{precaution}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedExercise.modifications && (
+                  <div>
+                    <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Modifications</h4>
+                    <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
+                      {selectedExercise.modifications.map((modification, index) => (
+                        <li key={index}>{modification}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Timer and Controls */}
+              <div>
+                <div style={{
+                  padding: '2rem',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: 'var(--border-radius-lg)',
+                  textAlign: 'center',
+                  marginBottom: '1rem'
+                }}>
+                  <div style={{ fontSize: '3rem', fontWeight: '900', color: 'var(--primary-600)', marginBottom: '0.5rem' }}>
+                    {formatTime(timeRemaining)}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    {isRestMode ? `Rest Time (Set ${currentSet}/${selectedExercise.sets})` : `Set ${currentSet}/${selectedExercise.sets}`}
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                    <button
+                      className={`btn ${isTimerRunning ? 'btn-danger' : 'btn-primary'}`}
+                      onClick={toggleTimer}
+                    >
+                      {isTimerRunning ? <Pause size={16} /> : <Play size={16} />}
+                      {isTimerRunning ? 'Pause' : 'Start'}
+                    </button>
+                    <button className="btn btn-secondary" onClick={resetTimer}>
+                      <RotateCcw size={16} />
+                      Reset
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ marginBottom: '0.5rem' }}>Exercise Stats</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
+                    <div>Duration: {formatTime(selectedExercise.duration)}</div>
+                    <div>Sets: {selectedExercise.sets}</div>
+                    <div>Reps: {selectedExercise.reps}</div>
+                    <div>Calories: {selectedExercise.caloriesBurned || 0}</div>
+                  </div>
+                </div>
+
+                <button
+                  className="btn btn-success"
+                  onClick={completeExercise}
+                  style={{ width: '100%' }}
+                >
+                  <CheckCircle size={16} />
+                  Mark Complete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Exercise Stats */}
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <div className="card-header">
-          <h3>Exercise Statistics</h3>
+      {filteredExercises.length === 0 && (
+        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <Search size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+          <h3 style={{ marginBottom: '0.5rem' }}>No exercises found</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            Try adjusting your filters or search terms
+          </p>
         </div>
-        <div className="card-content">
-          <div className="grid grid-4">
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: '700', color: '#667eea' }}>
-                {exercises.length}
-              </div>
-              <div style={{ color: '#718096', fontSize: '0.875rem' }}>
-                Total Exercises
-              </div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: '700', color: '#48bb78' }}>
-                {exercises.filter(ex => ex.difficulty === 'Beginner').length}
-              </div>
-              <div style={{ color: '#718096', fontSize: '0.875rem' }}>
-                Beginner Level
-              </div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: '700', color: '#ed8936' }}>
-                {exercises.filter(ex => ex.difficulty === 'Intermediate').length}
-              </div>
-              <div style={{ color: '#718096', fontSize: '0.875rem' }}>
-                Intermediate Level
-              </div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: '700', color: '#f56565' }}>
-                {exercises.filter(ex => ex.difficulty === 'Advanced').length}
-              </div>
-              <div style={{ color: '#718096', fontSize: '0.875rem' }}>
-                Advanced Level
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

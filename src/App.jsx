@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
+import ErrorBoundary from './components/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import PainTracking from './pages/PainTracking';
 import Exercises from './pages/Exercises';
@@ -26,7 +27,11 @@ const App = () => {
 
   useEffect(() => {
     // Initialize default data on first load
-    initializeDefaultData();
+    try {
+      initializeDefaultData();
+    } catch (error) {
+      console.error('Error initializing data:', error);
+    }
     
     // Simulate loading progress
     const progressInterval = setInterval(() => {
@@ -44,26 +49,35 @@ const App = () => {
   }, []);
 
   const renderActiveComponent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'pain-tracking':
-        return <PainTracking />;
-      case 'exercises':
-        return <Exercises />;
-      case 'appointments':
-        return <Appointments />;
-      case 'medications':
-        return <Medications />;
-      case 'education':
-        return <Education />;
-      case 'reports':
-        return <Reports />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <Dashboard />;
+    try {
+      switch (activeTab) {
+        case 'dashboard':
+          return <Dashboard />;
+        case 'pain-tracking':
+          return <PainTracking />;
+        case 'exercises':
+          return <Exercises />;
+        case 'appointments':
+          return <Appointments />;
+        case 'medications':
+          return <Medications />;
+        case 'education':
+          return <Education />;
+        case 'reports':
+          return <Reports />;
+        case 'settings':
+          return <Settings />;
+        default:
+          return <Dashboard />;
+      }
+    } catch (error) {
+      console.error('Error rendering component:', error);
+      return <Dashboard />;
     }
+  };
+
+  const handleGoHome = () => {
+    setActiveTab('dashboard');
   };
 
   if (isLoading) {
@@ -247,14 +261,20 @@ const App = () => {
   }
 
   return (
-    <div className="app">
-      <div className="app-container">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="main-content">
-          {renderActiveComponent()}
-        </main>
+    <ErrorBoundary onGoHome={handleGoHome}>
+      <div className="app">
+        <div className="app-container">
+          <ErrorBoundary>
+            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+          </ErrorBoundary>
+          <main className="main-content">
+            <ErrorBoundary>
+              {renderActiveComponent()}
+            </ErrorBoundary>
+          </main>
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 
