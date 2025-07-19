@@ -126,13 +126,27 @@ const Exercises = () => {
 
   // Filtered and sorted exercises
   const filteredExercises = useMemo(() => {
+    if (!exercises || !Array.isArray(exercises)) {
+      return [];
+    }
+    
     let filtered = exercises.filter(exercise => {
+      // Safety checks for exercise properties
+      if (!exercise || typeof exercise !== 'object') return false;
+      
       const matchesCategory = filterCategory === 'All' || exercise.category === filterCategory;
       const matchesDifficulty = filterDifficulty === 'All' || exercise.difficulty === filterDifficulty;
       const matchesPainLevel = filterPainLevel === 'All' || exercise.painReliefLevel === filterPainLevel;
-      const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           exercise.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           exercise.targetAreas.some(area => area.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const exerciseName = exercise.name || '';
+      const exerciseDescription = exercise.description || '';
+      const exerciseTargetAreas = Array.isArray(exercise.targetAreas) ? exercise.targetAreas : [];
+      
+      const matchesSearch = exerciseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           exerciseDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           exerciseTargetAreas.some(area => 
+                             typeof area === 'string' && area.toLowerCase().includes(searchTerm.toLowerCase())
+                           );
       
       return matchesCategory && matchesDifficulty && matchesPainLevel && matchesSearch;
     });
@@ -390,7 +404,7 @@ const Exercises = () => {
 
       {/* Exercise Grid/List */}
       <div className={viewMode === 'grid' ? 'grid-3' : ''}>
-        {filteredExercises.map(exercise => (
+        {filteredExercises && filteredExercises.length > 0 ? filteredExercises.map(exercise => (
           <div key={exercise.id} className="exercise-card" style={{ position: 'relative' }}>
             {/* Favorite button */}
             <button
@@ -542,7 +556,15 @@ const Exercises = () => {
               </button>
             </div>
           </div>
-        ))}
+        )) : (
+          <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+            <Activity size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+            <h3 style={{ marginBottom: '0.5rem' }}>No exercises available</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Loading exercises or no exercises found.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Enhanced Exercise Modal */}
@@ -574,18 +596,20 @@ const Exercises = () => {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Instructions</h4>
                   <ol className="exercise-instructions">
-                    {selectedExercise.instructions.map((instruction, index) => (
-                      <li key={index}>{instruction}</li>
-                    ))}
+                    {selectedExercise.instructions && Array.isArray(selectedExercise.instructions) ? 
+                      selectedExercise.instructions.map((instruction, index) => (
+                        <li key={index}>{instruction}</li>
+                      )) : null}
                   </ol>
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Benefits</h4>
                   <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                    {selectedExercise.benefits.map((benefit, index) => (
-                      <li key={index}>{benefit}</li>
-                    ))}
+                    {selectedExercise.benefits && Array.isArray(selectedExercise.benefits) ? 
+                      selectedExercise.benefits.map((benefit, index) => (
+                        <li key={index}>{benefit}</li>
+                      )) : null}
                   </ul>
                 </div>
 
@@ -593,9 +617,10 @@ const Exercises = () => {
                   <div style={{ marginBottom: '1.5rem' }}>
                     <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Precautions</h4>
                     <ul style={{ paddingLeft: '1.5rem', color: 'var(--warning-600)' }}>
-                      {selectedExercise.precautions.map((precaution, index) => (
-                        <li key={index}>{precaution}</li>
-                      ))}
+                      {selectedExercise.precautions && Array.isArray(selectedExercise.precautions) ? 
+                        selectedExercise.precautions.map((precaution, index) => (
+                          <li key={index}>{precaution}</li>
+                        )) : null}
                     </ul>
                   </div>
                 )}
