@@ -196,8 +196,30 @@ body {
 }
 
 /* Pain Slider */
-.pain-slider {
+.pain-slider, .mood-slider {
   margin-top: 12px;
+}
+
+/* Hydration Buttons */
+.hydration-buttons {
+  margin-top: 8px;
+}
+
+.hydration-btn {
+  background: linear-gradient(135deg, #00BCD4, #26C6DA);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hydration-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
 }
 
 .slider {
@@ -324,7 +346,7 @@ body {
 /* Quick Actions */
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
@@ -333,7 +355,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 24px;
+  padding: 20px;
   background: white;
   border: 2px solid #e1e8f0;
   border-radius: 16px;
@@ -342,6 +364,19 @@ body {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-action-btn.primary {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.quick-action-btn.primary:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
 }
 
 .quick-action-btn:hover {
@@ -352,7 +387,28 @@ body {
 }
 
 .action-icon {
-  font-size: 32px;
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.action-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #FF6B6B;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-desc {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 2px;
 }
 
 /* Exercises */
@@ -1310,5 +1366,194 @@ html {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Settings Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
+}
+
+.settings-modal {
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid #e1e8f0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 20px 20px 0 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.settings-section {
+  margin-bottom: 32px;
+}
+
+.settings-section h4 {
+  color: #333;
+  font-size: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e1e8f0;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8f9ff;
+  border-radius: 12px;
+}
+
+.setting-item label {
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.setting-item input[type="number"],
+.setting-item input[type="time"] {
+  width: 80px;
+  padding: 8px;
+  border: 2px solid #e1e8f0;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.setting-item input[type="range"] {
+  width: 120px;
+  margin-left: 16px;
+}
+
+.setting-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.setting-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.setting-btn.export {
+  background: linear-gradient(135deg, #4CAF50, #8BC34A);
+  color: white;
+}
+
+.setting-btn.import {
+  background: linear-gradient(135deg, #2196F3, #64B5F6);
+  color: white;
+}
+
+.setting-btn.report {
+  background: linear-gradient(135deg, #FF9800, #FFB74D);
+  color: white;
+}
+
+.setting-btn.danger {
+  background: linear-gradient(135deg, #F44336, #EF5350);
+  color: white;
+}
+
+.setting-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.last-backup {
+  margin-top: 16px;
+  padding: 12px;
+  background: #e8f5e8;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #2e7d32;
+  text-align: center;
+}
+
+.app-info {
+  background: #f8f9ff;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.app-info p {
+  margin: 8px 0;
+  color: #666;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
