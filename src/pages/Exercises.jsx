@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useExercises } from '../hooks/useData';
 import SafeRenderer from '../components/SafeRenderer';
 import UltraSafeRenderer from '../components/UltraSafeRenderer';
@@ -30,861 +30,732 @@ import {
   Flame,
   Shield,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  PlayCircle,
+  PauseCircle,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Repeat,
+  ArrowUp,
+  ArrowDown,
+  TrendingDown,
+  DollarSign,
+  LineChart,
+  PieChart,
+  Wallet,
+  CreditCard,
+  Eye,
+  EyeOff,
+  Smartphone,
+  Headphones,
+  Trophy,
+  Gift,
+  Sparkles,
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  Minus
 } from 'lucide-react';
 
-const ExercisesCore = () => {
-  // ULTRA-SAFE EXERCISE DATA LOADING WITH DEBUG INFO
-  let exerciseData = null;
-  let safeExercises = [];
-  
-  try {
-    const hookResult = useExercises();
-    console.log('Raw hook result:', hookResult);
-    console.log('Hook result type:', typeof hookResult);
-    
-    exerciseData = hookResult || {};
-    const rawExercises = exerciseData.exercises;
-    console.log('Raw exercises:', rawExercises);
-    console.log('Is raw exercises an array?', Array.isArray(rawExercises));
-    
-    safeExercises = (rawExercises && Array.isArray(rawExercises)) ? rawExercises : [];
-    console.log('Safe exercises length:', safeExercises.length);
-    
-    // Log first exercise to check structure
-    if (safeExercises.length > 0) {
-      console.log('First exercise sample:', safeExercises[0]);
-      console.log('First exercise keys:', Object.keys(safeExercises[0] || {}));
-    }
-  } catch (error) {
-    console.error('Error loading exercises:', error);
-    safeExercises = [];
+// Enhanced Sound Manager for Exercise Audio Feedback
+class ExerciseSoundManager {
+  constructor() {
+    this.audioContext = null;
+    this.isEnabled = localStorage.getItem('exerciseSoundsEnabled') !== 'false';
+    this.initAudioContext();
   }
 
-  // SAFE STATE INITIALIZATION
-  const [selectedExercise, setSelectedExercise] = useState(null);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [currentSet, setCurrentSet] = useState(1);
-  const [isRestMode, setIsRestMode] = useState(false);
-  const [restTime, setRestTime] = useState(30);
-  
-  // Filtering and search - SAFE DEFAULTS
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [filterDifficulty, setFilterDifficulty] = useState('All');
-  const [filterPainLevel, setFilterPainLevel] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState('grid');
-  
-  // Exercise tracking - SAFE DEFAULTS
-  const [completedExercises, setCompletedExercises] = useState(new Set());
-  const [favoriteExercises, setFavoriteExercises] = useState(new Set());
-  const [exerciseHistory, setExerciseHistory] = useState([]);
-  
-  // UI states - SAFE DEFAULTS
-  const [showFilters, setShowFilters] = useState(false);
-  const [showExerciseModal, setShowExerciseModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  initAudioContext() {
+    try {
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      console.warn('Web Audio API not supported');
+    }
+  }
 
-  // SAFE CONSTANTS - GUARANTEED TO BE ARRAYS
-  const categories = ['All', 'Flexibility', 'Strengthening', 'Mobility', 'Aerobic', 'Balance', 'Relaxation', 'Mind-Body', 'Functional', 'Workplace', 'Recovery', 'Dynamic', 'Posture'];
-  const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
-  const painLevels = ['All', 'High', 'Medium', 'Low'];
-  const sortOptions = [
-    { value: 'name', label: 'Name A-Z' },
-    { value: 'difficulty', label: 'Difficulty' },
-    { value: 'duration', label: 'Duration' },
-    { value: 'calories', label: 'Calories' },
-    { value: 'painRelief', label: 'Pain Relief' }
+  createTone(frequency, duration, type = 'sine', envelope = 'standard') {
+    if (!this.audioContext || !this.isEnabled) return;
+
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
+    const filter = this.audioContext.createBiquadFilter();
+    
+    oscillator.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(this.audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+    oscillator.type = type;
+    
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(3000, this.audioContext.currentTime);
+    filter.Q.setValueAtTime(1, this.audioContext.currentTime);
+    
+    switch (envelope) {
+      case 'workout':
+        gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.3, this.audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.1, this.audioContext.currentTime + duration);
+        break;
+      case 'rest':
+        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+        break;
+      default:
+        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+    }
+    
+    oscillator.start(this.audioContext.currentTime);
+    oscillator.stop(this.audioContext.currentTime + duration);
+  }
+
+  // Exercise-specific sounds
+  playWorkoutStart() {
+    // Energetic ascending tones
+    const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+    notes.forEach((note, i) => {
+      setTimeout(() => this.createTone(note, 0.3, 'triangle', 'workout'), i * 100);
+    });
+  }
+
+  playWorkoutComplete() {
+    // Victory fanfare
+    this.createTone(523.25, 0.3); // C5
+    setTimeout(() => this.createTone(659.25, 0.3), 150); // E5
+    setTimeout(() => this.createTone(783.99, 0.4), 300); // G5
+    setTimeout(() => this.createTone(1046.50, 0.6), 450); // C6
+  }
+
+  playSetComplete() {
+    // Quick success chime
+    this.createTone(800, 0.15, 'triangle');
+    setTimeout(() => this.createTone(1000, 0.15, 'triangle'), 100);
+  }
+
+  playRestPeriod() {
+    // Gentle descending tones for rest
+    this.createTone(400, 0.5, 'sine', 'rest');
+    setTimeout(() => this.createTone(350, 0.5, 'sine', 'rest'), 250);
+  }
+
+  playCountdown(count) {
+    // Different tones for countdown
+    if (count <= 3) {
+      this.createTone(800 + (count * 200), 0.2, 'square');
+    } else {
+      this.createTone(600, 0.15, 'triangle');
+    }
+  }
+
+  playExerciseSwitch() {
+    // Transition sound
+    this.createTone(500, 0.1, 'triangle');
+    setTimeout(() => this.createTone(700, 0.1, 'triangle'), 80);
+  }
+
+  playHeartbeat() {
+    // Double beat like heartbeat
+    this.createTone(60, 0.05, 'square');
+    setTimeout(() => this.createTone(60, 0.05, 'square'), 100);
+  }
+
+  playProgressUp() {
+    // Portfolio gain sound
+    const notes = [220, 277.18, 329.63, 415.30];
+    notes.forEach((note, i) => {
+      setTimeout(() => this.createTone(note, 0.2, 'triangle'), i * 80);
+    });
+  }
+
+  toggle() {
+    this.isEnabled = !this.isEnabled;
+    localStorage.setItem('exerciseSoundsEnabled', this.isEnabled);
+    if (this.isEnabled) {
+      setTimeout(() => this.playSetComplete(), 100);
+    }
+  }
+}
+
+const ExercisesCore = () => {
+  // Enhanced state management
+  const [activeWorkout, setActiveWorkout] = useState(null);
+  const [currentExercise, setCurrentExercise] = useState(0);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [isWorkoutActive, setIsWorkoutActive] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [restTimer, setRestTimer] = useState(0);
+  const [workoutStats, setWorkoutStats] = useState({
+    totalWorkouts: 47,
+    totalTime: 1420, // minutes
+    caloriesBurned: 3850,
+    currentStreak: 12,
+    personalBests: {},
+    weeklyGoal: 5,
+    weeklyCompleted: 3
+  });
+  
+  // Robinhood-style portfolio state
+  const [exercisePortfolio, setExercisePortfolio] = useState({
+    totalValue: 2847.50,
+    dailyChange: 67.25,
+    changePercent: 2.42,
+    investments: [
+      { name: 'Strength Training', value: 1250.30, change: 34.50, percent: 2.84, color: '#00C805' },
+      { name: 'Cardio Fitness', value: 890.75, change: 18.75, percent: 2.15, color: '#00C805' },
+      { name: 'Flexibility', value: 456.25, change: 12.50, percent: 2.82, color: '#00C805' },
+      { name: 'Recovery', value: 250.20, change: 1.50, percent: 0.60, color: '#00C805' }
+    ]
+  });
+
+  // Sound manager
+  const soundManager = useRef(new ExerciseSoundManager());
+  
+  // Workout programs with investment-style naming
+  const workoutPrograms = [
+    {
+      id: 'strength_growth',
+      name: 'Strength Growth Portfolio',
+      subtitle: 'High-yield muscle investments',
+      duration: 45,
+      exercises: 3,
+      difficulty: 'Intermediate',
+      expectedReturn: '+12% strength gains',
+      risk: 'Moderate',
+      exercises: [
+        {
+          name: 'Push-up Compound',
+          description: 'Classic upper body investment',
+          sets: 3,
+          reps: '12-15',
+          restTime: 60,
+          muscleGroups: ['Chest', 'Shoulders', 'Triceps'],
+          instructions: [
+            'Start in plank position with hands shoulder-width apart',
+            'Lower chest to floor while keeping core tight',
+            'Push back up to starting position',
+            'Maintain straight line from head to heels'
+          ],
+          tips: 'Focus on controlled movement for maximum returns',
+          calories: 8,
+          difficulty: 'Beginner'
+        },
+        {
+          name: 'Squat Equity Builder',
+          description: 'Lower body strength accumulation',
+          sets: 3,
+          reps: '15-20',
+          restTime: 90,
+          muscleGroups: ['Quadriceps', 'Glutes', 'Hamstrings'],
+          instructions: [
+            'Stand with feet shoulder-width apart',
+            'Lower hips back and down as if sitting in chair',
+            'Keep chest up and knees tracking over toes',
+            'Drive through heels to return to standing'
+          ],
+          tips: 'Depth and form yield better dividends than speed',
+          calories: 12,
+          difficulty: 'Beginner'
+        },
+        {
+          name: 'Plank Holdings',
+          description: 'Core stability investment',
+          sets: 3,
+          reps: '30-60 seconds',
+          restTime: 45,
+          muscleGroups: ['Core', 'Shoulders'],
+          instructions: [
+            'Start in forearm plank position',
+            'Keep body in straight line from head to heels',
+            'Engage core and breathe steadily',
+            'Hold for prescribed time'
+          ],
+          tips: 'Quality holds build long-term core value',
+          calories: 6,
+          difficulty: 'Intermediate'
+        }
+      ],
+      color: '#00C805'
+    },
+    {
+      id: 'cardio_momentum',
+      name: 'Cardio Momentum Fund',
+      subtitle: 'High-frequency heart investments',
+      duration: 30,
+      exercises: 2,
+      difficulty: 'High',
+      expectedReturn: '+15% cardiovascular gains',
+      risk: 'High',
+      exercises: [
+        {
+          name: 'Jumping Jack Futures',
+          description: 'Full-body cardio investment',
+          sets: 4,
+          reps: '30 seconds',
+          restTime: 30,
+          muscleGroups: ['Full Body'],
+          instructions: [
+            'Start standing with feet together, arms at sides',
+            'Jump feet apart while raising arms overhead',
+            'Jump back to starting position',
+            'Maintain steady rhythm'
+          ],
+          tips: 'Consistent pace maximizes cardio returns',
+          calories: 15,
+          difficulty: 'Beginner'
+        },
+        {
+          name: 'High-Knee Stock',
+          description: 'Rapid-fire leg circulation',
+          sets: 4,
+          reps: '30 seconds',
+          restTime: 30,
+          muscleGroups: ['Legs', 'Core'],
+          instructions: [
+            'Stand in place, engage core',
+            'Lift knees to hip height alternately',
+            'Pump arms naturally',
+            'Maintain quick tempo'
+          ],
+          tips: 'Higher knees = higher returns',
+          calories: 12,
+          difficulty: 'Intermediate'
+        }
+      ],
+      color: '#FF6B35'
+    },
+    {
+      id: 'flexibility_bonds',
+      name: 'Flexibility Bonds',
+      subtitle: 'Safe, steady mobility returns',
+      duration: 20,
+      exercises: 1,
+      difficulty: 'Low',
+      expectedReturn: '+8% flexibility gains',
+      risk: 'Low',
+      exercises: [
+        {
+          name: 'Cat-Cow Securities',
+          description: 'Spine mobility investment',
+          sets: 2,
+          reps: '10-15',
+          restTime: 30,
+          muscleGroups: ['Spine', 'Core'],
+          instructions: [
+            'Start on hands and knees',
+            'Arch back and look up (Cow)',
+            'Round spine and tuck chin (Cat)',
+            'Move slowly and smoothly'
+          ],
+          tips: 'Slow, controlled movements yield best flexibility dividends',
+          calories: 4,
+          difficulty: 'Beginner'
+        }
+      ],
+      color: '#6366F1'
+    }
   ];
 
-  // Load saved data from localStorage
+  // Timer management
   useEffect(() => {
-    try {
-      const savedCompleted = localStorage.getItem('completedExercises');
-      const savedFavorites = localStorage.getItem('favoriteExercises');
-      const savedHistory = localStorage.getItem('exerciseHistory');
-      
-      if (savedCompleted) setCompletedExercises(new Set(JSON.parse(savedCompleted)));
-      if (savedFavorites) setFavoriteExercises(new Set(JSON.parse(savedFavorites)));
-      if (savedHistory) setExerciseHistory(JSON.parse(savedHistory));
-    } catch (error) {
-      console.error('Error loading saved data:', error);
-    }
+    let interval = null;
     
-    // Set loading to false after a brief delay to ensure exercises are loaded
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Save data to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('completedExercises', JSON.stringify([...completedExercises]));
-    } catch (error) {
-      console.error('Error saving completed exercises:', error);
-    }
-  }, [completedExercises]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('favoriteExercises', JSON.stringify([...favoriteExercises]));
-    } catch (error) {
-      console.error('Error saving favorite exercises:', error);
-    }
-  }, [favoriteExercises]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('exerciseHistory', JSON.stringify(exerciseHistory));
-    } catch (error) {
-      console.error('Error saving exercise history:', error);
-    }
-  }, [exerciseHistory]);
-
-  // Timer logic
-  useEffect(() => {
-    let interval;
-    if (isTimerRunning && timeRemaining > 0) {
+    if (isWorkoutActive && !isPaused) {
       interval = setInterval(() => {
-        setTimeRemaining(time => {
-          if (time <= 1) {
-            setIsTimerRunning(false);
-            handleTimerComplete();
-            return 0;
-          }
-          return time - 1;
-        });
+        if (restTimer > 0) {
+          setRestTimer(prev => {
+            if (prev <= 1) {
+              soundManager.current.playCountdown(0);
+              return 0;
+            } else if (prev <= 4) {
+              soundManager.current.playCountdown(prev - 1);
+            }
+            return prev - 1;
+          });
+        } else {
+          setTimer(prev => prev + 1);
+        }
       }, 1000);
     }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timeRemaining]);
-
-  const handleTimerComplete = () => {
-    if (isRestMode) {
-      setIsRestMode(false);
-      setCurrentSet(prev => prev + 1);
-      if (selectedExercise) {
-        setTimeRemaining(selectedExercise.duration);
-      }
-    } else {
-      // Exercise set completed
-      if (selectedExercise && currentSet < selectedExercise.sets) {
-        setIsRestMode(true);
-        setTimeRemaining(restTime);
-        setIsTimerRunning(true);
-      } else {
-        // All sets completed
-        completeExercise();
-      }
-    }
-  };
-
-  // ULTRA-SAFE Filtered and sorted exercises
-  const filteredExercises = useMemo(() => {
-    try {
-      if (!safeExercises || !Array.isArray(safeExercises) || safeExercises.length === 0) {
-        return [];
-      }
-      
-      let filtered = safeExercises.filter(exercise => {
-        // Safety checks for exercise properties
-        if (!exercise || typeof exercise !== 'object') return false;
-        
-        const matchesCategory = filterCategory === 'All' || exercise.category === filterCategory;
-        const matchesDifficulty = filterDifficulty === 'All' || exercise.difficulty === filterDifficulty;
-        const matchesPainLevel = filterPainLevel === 'All' || exercise.painReliefLevel === filterPainLevel;
-        
-        const exerciseName = exercise.name || '';
-        const exerciseDescription = exercise.description || '';
-        const exerciseTargetAreas = Array.isArray(exercise.targetAreas) ? exercise.targetAreas : [];
-        
-        const matchesSearch = exerciseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             exerciseDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             exerciseTargetAreas.some(area => 
-                               typeof area === 'string' && area.toLowerCase().includes(searchTerm.toLowerCase())
-                             );
-        
-        return matchesCategory && matchesDifficulty && matchesPainLevel && matchesSearch;
-      });
-
-      // Sort exercises
-      filtered.sort((a, b) => {
-        try {
-          switch (sortBy) {
-            case 'name':
-              return (a.name || '').localeCompare(b.name || '');
-            case 'difficulty':
-              const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
-              return (difficultyOrder[a.difficulty] || 0) - (difficultyOrder[b.difficulty] || 0);
-            case 'duration':
-              return (a.duration || 0) - (b.duration || 0);
-            case 'calories':
-              return (b.caloriesBurned || 0) - (a.caloriesBurned || 0);
-            case 'painRelief':
-              const painOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-              return (painOrder[b.painReliefLevel] || 0) - (painOrder[a.painReliefLevel] || 0);
-            default:
-              return 0;
-          }
-        } catch (error) {
-          console.error('Error sorting exercises:', error);
-          return 0;
-        }
-      });
-
-      return filtered;
-    } catch (error) {
-      console.error('Error filtering exercises:', error);
-      return [];
-    }
-  }, [safeExercises, filterCategory, filterDifficulty, filterPainLevel, searchTerm, sortBy]);
-
-  // Function to sanitize exercise data
-  const sanitizeExercise = (exercise) => {
-    if (!exercise) return null;
     
-    return {
-      ...exercise,
-      instructions: Array.isArray(exercise.instructions) ? exercise.instructions : [],
-      benefits: Array.isArray(exercise.benefits) ? exercise.benefits : [],
-      precautions: Array.isArray(exercise.precautions) ? exercise.precautions : [],
-      modifications: Array.isArray(exercise.modifications) ? exercise.modifications : [],
-      targetAreas: Array.isArray(exercise.targetAreas) ? exercise.targetAreas : []
+    return () => {
+      if (interval) clearInterval(interval);
     };
+  }, [isWorkoutActive, isPaused, restTimer]);
+
+  // Workout functions
+  const startWorkout = (program) => {
+    setActiveWorkout(program);
+    setCurrentExercise(0);
+    setCurrentSet(1);
+    setTimer(0);
+    setRestTimer(0);
+    setIsWorkoutActive(true);
+    setIsPaused(false);
+    soundManager.current.playWorkoutStart();
   };
 
-  const startExercise = (exercise) => {
-    try {
-      const sanitizedExercise = sanitizeExercise(exercise);
-      setSelectedExercise(sanitizedExercise);
-      setTimeRemaining(exercise.duration || 0);
+  const completeSet = () => {
+    soundManager.current.playSetComplete();
+    const currentExerciseData = activeWorkout.exercises[currentExercise];
+    
+    if (currentSet < currentExerciseData.sets) {
+      setCurrentSet(prev => prev + 1);
+      setRestTimer(currentExerciseData.restTime || 60);
+      soundManager.current.playRestPeriod();
+    } else {
+      nextExercise();
+    }
+    
+    // Update portfolio value
+    const valueIncrease = Math.random() * 50 + 25;
+    updateExercisePortfolio(valueIncrease);
+  };
+
+  const nextExercise = () => {
+    if (currentExercise < activeWorkout.exercises.length - 1) {
+      setCurrentExercise(prev => prev + 1);
       setCurrentSet(1);
-      setIsRestMode(false);
-      setIsTimerRunning(false);
-      setShowExerciseModal(true);
-    } catch (error) {
-      console.error('Error starting exercise:', error);
+      setRestTimer(0);
+      soundManager.current.playExerciseSwitch();
+    } else {
+      completeWorkout();
     }
   };
 
-  const toggleTimer = () => {
-    setIsTimerRunning(!isTimerRunning);
+  const completeWorkout = () => {
+    soundManager.current.playWorkoutComplete();
+    setIsWorkoutActive(false);
+    setActiveWorkout(null);
+    
+    // Update stats
+    setWorkoutStats(prev => ({
+      ...prev,
+      totalWorkouts: prev.totalWorkouts + 1,
+      totalTime: prev.totalTime + Math.floor(timer / 60),
+      caloriesBurned: prev.caloriesBurned + 200,
+      weeklyCompleted: Math.min(prev.weeklyCompleted + 1, prev.weeklyGoal)
+    }));
+    
+    // Major portfolio boost
+    updateExercisePortfolio(150 + Math.random() * 100);
   };
 
-  const resetTimer = () => {
-    try {
-      if (selectedExercise) {
-        setTimeRemaining(selectedExercise.duration || 0);
-        setCurrentSet(1);
-        setIsRestMode(false);
-        setIsTimerRunning(false);
-      }
-    } catch (error) {
-      console.error('Error resetting timer:', error);
-    }
+  const updateExercisePortfolio = (increase) => {
+    setExercisePortfolio(prev => ({
+      ...prev,
+      totalValue: prev.totalValue + increase,
+      dailyChange: prev.dailyChange + increase,
+      changePercent: ((prev.dailyChange + increase) / prev.totalValue) * 100
+    }));
+    soundManager.current.playProgressUp();
   };
 
-  const completeExercise = () => {
-    try {
-      if (selectedExercise) {
-        setCompletedExercises(prev => new Set([...prev, selectedExercise.id]));
-        
-        // Add to history
-        const historyEntry = {
-          exerciseId: selectedExercise.id,
-          exerciseName: selectedExercise.name,
-          completedAt: new Date().toISOString(),
-          duration: selectedExercise.duration,
-          sets: selectedExercise.sets,
-          caloriesBurned: selectedExercise.caloriesBurned || 0
-        };
-        
-        setExerciseHistory(prev => [historyEntry, ...prev.slice(0, 49)]); // Keep last 50 entries
-        setShowExerciseModal(false);
-        setSelectedExercise(null);
-      }
-    } catch (error) {
-      console.error('Error completing exercise:', error);
-    }
-  };
-
-  const toggleFavorite = (exerciseId) => {
-    try {
-      setFavoriteExercises(prev => {
-        const newFavorites = new Set(prev);
-        if (newFavorites.has(exerciseId)) {
-          newFavorites.delete(exerciseId);
-        } else {
-          newFavorites.add(exerciseId);
-        }
-        return newFavorites;
-      });
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    }
+  const pauseWorkout = () => {
+    setIsPaused(!isPaused);
+    soundManager.current.playSetComplete();
   };
 
   const formatTime = (seconds) => {
-    try {
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
-    } catch (error) {
-      console.error('Error formatting time:', error);
-      return '0:00';
-    }
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'Beginner': return '#10b981';
-      case 'Intermediate': return '#f59e0b';
-      case 'Advanced': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
-
-  const getPainReliefColor = (level) => {
-    switch (level) {
-      case 'High': return '#10b981';
-      case 'Medium': return '#f59e0b';
-      case 'Low': return '#6b7280';
-      default: return '#6b7280';
-    }
-  };
-
+  // Return the Robinhood-style Exercise interface
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <h2>Exercise Library</h2>
-          <p>Comprehensive back pain relief exercises and wellness routines</p>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderRadius: '2rem',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#059669'
-          }}>
-            {filteredExercises.length} Exercises Available
+    <div className="robinhood-exercises">
+      {/* Exercise Portfolio Header */}
+      <div className="exercise-portfolio-header">
+        <div className="portfolio-summary">
+          <div className="portfolio-title">
+            <Dumbbell className="portfolio-icon" />
+            <div>
+              <h1>Fitness Portfolio</h1>
+              <p>Your health investment dashboard</p>
+            </div>
           </div>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowFilters(!showFilters)}
+          
+          <div className="portfolio-value">
+            <div className="total-value">${exercisePortfolio.totalValue.toLocaleString()}</div>
+            <div className={`daily-change ${exercisePortfolio.dailyChange >= 0 ? 'positive' : 'negative'}`}>
+              {exercisePortfolio.dailyChange >= 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+              ${Math.abs(exercisePortfolio.dailyChange).toFixed(2)} ({exercisePortfolio.changePercent.toFixed(2)}%)
+            </div>
+          </div>
+
+          <button 
+            className="sound-toggle"
+            onClick={() => soundManager.current.toggle()}
+            title="Toggle exercise sounds"
           >
-            <Filter size={16} />
-            Filters
+            {soundManager.current.isEnabled ? <Headphones /> : <VolumeX />}
           </button>
         </div>
-      </div>
 
-      {/* Enhanced Filter Section */}
-      {showFilters && (
-        <div className="card" style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">Search Exercises</label>
-              <div style={{ position: 'relative' }}>
-                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Search by name, description, or target area..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ paddingLeft: '40px' }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Category</label>
-              <select
-                className="form-select"
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-              >
-                {categories && Array.isArray(categories) ? categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                )) : null}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Difficulty</label>
-              <select
-                className="form-select"
-                value={filterDifficulty}
-                onChange={(e) => setFilterDifficulty(e.target.value)}
-              >
-                {difficulties && Array.isArray(difficulties) ? difficulties.map(diff => (
-                  <option key={diff} value={diff}>{diff}</option>
-                )) : null}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Pain Relief</label>
-              <select
-                className="form-select"
-                value={filterPainLevel}
-                onChange={(e) => setFilterPainLevel(e.target.value)}
-              >
-                {painLevels && Array.isArray(painLevels) ? painLevels.map(level => (
-                  <option key={level} value={level}>{level}</option>
-                )) : null}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Sort By</label>
-              <select
-                className="form-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                {sortOptions && Array.isArray(sortOptions) ? sortOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                )) : null}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">View Mode</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setViewMode('grid')}
-                  style={{ flex: 1 }}
-                >
-                  Grid
-                </button>
-                <button
-                  className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setViewMode('list')}
-                  style={{ flex: 1 }}
-                >
-                  List
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Stats */}
-      <div className="stats-grid" style={{ marginBottom: '2rem' }}>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: '#6366f1' }}>
-            {completedExercises.size}
-          </div>
-          <div className="stat-label">Completed Today</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: '#10b981' }}>
-            {favoriteExercises.size}
-          </div>
-          <div className="stat-label">Favorite Exercises</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: '#f59e0b' }}>
-            {exerciseHistory.reduce((sum, entry) => sum + (entry.caloriesBurned || 0), 0)}
-          </div>
-          <div className="stat-label">Calories Burned (Total)</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ color: '#ef4444' }}>
-            {Math.floor(exerciseHistory.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60)}
-          </div>
-          <div className="stat-label">Minutes Exercised</div>
+        {/* Portfolio Chart */}
+        <div className="portfolio-chart-mini">
+          <svg width="100%" height="60" viewBox="0 0 200 60">
+            <defs>
+              <linearGradient id="exerciseGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style={{stopColor: '#00C805', stopOpacity: 0.3}} />
+                <stop offset="100%" style={{stopColor: '#00C805', stopOpacity: 0}} />
+              </linearGradient>
+            </defs>
+            <path
+              d="M0,40 Q50,30 100,25 T200,20"
+              stroke="#00C805"
+              strokeWidth="2"
+              fill="none"
+            />
+            <path
+              d="M0,40 Q50,30 100,25 T200,20 L200,60 L0,60 Z"
+              fill="url(#exerciseGradient)"
+            />
+          </svg>
         </div>
       </div>
 
-      {/* Exercise Grid/List */}
-      <SafeRenderer fallback={
-        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-          <AlertTriangle size={48} style={{ opacity: 0.3, marginBottom: '1rem', color: '#ef4444' }} />
-          <h3 style={{ marginBottom: '0.5rem' }}>Exercise Loading Error</h3>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Unable to load exercises. Please refresh the page.
-          </p>
-        </div>
-      }>
-        <div className={viewMode === 'grid' ? 'grid-3' : ''}>
-          {isLoading ? (
-          <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <RefreshCw size={48} style={{ opacity: 0.3, marginBottom: '1rem', animation: 'spin 2s linear infinite' }} />
-            <h3 style={{ marginBottom: '0.5rem' }}>Loading exercises...</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              Please wait while we load your exercise library.
-            </p>
+      {/* Workout Stats Cards */}
+      <div className="workout-stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon">
+            <Trophy color="#00C805" />
           </div>
-        ) : filteredExercises && Array.isArray(filteredExercises) && filteredExercises.length > 0 ? filteredExercises.map(exercise => {
-          // Additional safety check for each exercise
-          if (!exercise || typeof exercise !== 'object' || !exercise.id) {
-            return null;
-          }
-          
-          return (
-          <div key={exercise.id} className="exercise-card" style={{ position: 'relative' }}>
-            {/* Favorite button */}
-            <button
-              onClick={() => toggleFavorite(exercise.id)}
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                background: 'rgba(255, 255, 255, 0.9)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                zIndex: 2,
-                transition: 'all var(--transition-normal)'
-              }}
-            >
-              {favoriteExercises.has(exercise.id) ? (
-                <BookmarkCheck size={18} style={{ color: '#f59e0b' }} />
-              ) : (
-                <Bookmark size={18} style={{ color: 'var(--text-secondary)' }} />
-              )}
-            </button>
+          <div className="stat-info">
+            <div className="stat-value">{workoutStats.totalWorkouts}</div>
+            <div className="stat-label">Total Workouts</div>
+          </div>
+        </div>
 
-            {/* Completion badge */}
-            {completedExercises.has(exercise.id) && (
-              <div style={{
-                position: 'absolute',
-                top: '1rem',
-                left: '1rem',
-                background: '#10b981',
-                color: 'white',
-                borderRadius: '50%',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 2
-              }}>
-                <CheckCircle size={16} />
-              </div>
-            )}
+        <div className="stat-card">
+          <div className="stat-icon">
+            <Clock color="#FF6B35" />
+          </div>
+          <div className="stat-info">
+            <div className="stat-value">{Math.floor(workoutStats.totalTime / 60)}h</div>
+            <div className="stat-label">Time Invested</div>
+          </div>
+        </div>
 
-            <div className="exercise-header">
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '2rem' }}>{exercise.imageUrl}</span>
-                  <div>
-                    <h3 className="exercise-title">{exercise.name}</h3>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                      {exercise.subcategory}
-                    </div>
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                  <span className="exercise-category">{exercise.category}</span>
-                  <span style={{
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '1rem',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    backgroundColor: `${getDifficultyColor(exercise.difficulty)}20`,
-                    color: getDifficultyColor(exercise.difficulty)
-                  }}>
-                    {exercise.difficulty}
-                  </span>
-                  <span style={{
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '1rem',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    backgroundColor: `${getPainReliefColor(exercise.painReliefLevel)}20`,
-                    color: getPainReliefColor(exercise.painReliefLevel)
-                  }}>
-                    {exercise.painReliefLevel} Relief
-                  </span>
-                </div>
-              </div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            <Flame color="#FF4444" />
+          </div>
+          <div className="stat-info">
+            <div className="stat-value">{workoutStats.caloriesBurned.toLocaleString()}</div>
+            <div className="stat-label">Calories Burned</div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            <Target color="#6366F1" />
+          </div>
+          <div className="stat-info">
+            <div className="stat-value">{workoutStats.weeklyCompleted}/{workoutStats.weeklyGoal}</div>
+            <div className="stat-label">Weekly Goal</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Workout Interface */}
+      {isWorkoutActive && activeWorkout && (
+        <div className="active-workout-container">
+          <div className="workout-header">
+            <div className="workout-title">
+              <h2>{activeWorkout.name}</h2>
+              <p>Exercise {currentExercise + 1} of {activeWorkout.exercises.length}</p>
             </div>
-
-            <div className="exercise-meta" style={{ marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Clock size={14} />
-                <span>{Math.floor(exercise.duration / 60)}:{(exercise.duration % 60).toString().padStart(2, '0')}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Target size={14} />
-                <span>{exercise.sets} sets × {exercise.reps}</span>
-              </div>
-              {exercise.caloriesBurned && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Zap size={14} />
-                  <span>{exercise.caloriesBurned} cal</span>
+            <div className="workout-timer">
+              <div className="timer-display">{formatTime(timer)}</div>
+              {restTimer > 0 && (
+                <div className="rest-timer">
+                  Rest: {restTimer}s
                 </div>
               )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Heart size={14} />
-                <span>{exercise.equipment || 'No equipment'}</span>
+            </div>
+          </div>
+
+          <div className="current-exercise">
+            <div className="exercise-info">
+              <h3>{activeWorkout.exercises[currentExercise]?.name}</h3>
+              <p>{activeWorkout.exercises[currentExercise]?.description}</p>
+              <div className="set-info">
+                Set {currentSet} of {activeWorkout.exercises[currentExercise]?.sets} • {activeWorkout.exercises[currentExercise]?.reps} reps
               </div>
             </div>
 
-            <div className="exercise-description">
-              {exercise.description}
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                Target Areas:
-              </div>
-              <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                {exercise.targetAreas && Array.isArray(exercise.targetAreas) ? exercise.targetAreas.map(area => (
-                  <span key={area} style={{
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-secondary)'
-                  }}>
-                    {area}
-                  </span>
-                )) : (
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                    No target areas specified
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                className="btn btn-primary"
-                onClick={() => startExercise(exercise)}
-                style={{ flex: 1 }}
+            <div className="workout-controls">
+              <button 
+                className="control-btn secondary"
+                onClick={pauseWorkout}
               >
-                <Play size={16} />
-                Start Exercise
+                {isPaused ? <PlayCircle /> : <PauseCircle />}
+                {isPaused ? 'Resume' : 'Pause'}
               </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  const sanitizedExercise = sanitizeExercise(exercise);
-                  setSelectedExercise(sanitizedExercise);
-                  setShowExerciseModal(true);
-                }}
-                style={{ padding: '0.75rem' }}
+
+              <button 
+                className="control-btn primary"
+                onClick={completeSet}
+                disabled={restTimer > 0}
               >
-                <Info size={16} />
+                <CheckCircle />
+                Complete Set
+              </button>
+
+              <button 
+                className="control-btn secondary"
+                onClick={nextExercise}
+              >
+                <SkipForward />
+                Skip Exercise
               </button>
             </div>
           </div>
-          );
-        }) : (
-          <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <Activity size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-            <h3 style={{ marginBottom: '0.5rem' }}>No exercises available</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              No exercises found with current filters.
-            </p>
-          </div>
-        )}
-      </div>
 
-      {/* Enhanced Exercise Modal */}
-      {showExerciseModal && selectedExercise && (
-        <div className="modal-overlay" onClick={() => setShowExerciseModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '95%' }}>
-            <div className="modal-header">
-              <div>
-                <h3 className="modal-title">{selectedExercise.name}</h3>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  {selectedExercise.category} • {selectedExercise.difficulty}
-                </div>
+          {restTimer > 0 && (
+            <div className="rest-period">
+              <div className="rest-circle">
+                <div className="rest-countdown">{restTimer}</div>
+                <div className="rest-label">Rest Time</div>
               </div>
-              <button className="modal-close" onClick={() => setShowExerciseModal(false)}>
-                <X size={20} />
-              </button>
             </div>
+          )}
+        </div>
+      )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
-              {/* Exercise Details */}
-              <div>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Description</h4>
-                  <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                    {selectedExercise.description}
-                  </p>
-                </div>
+      {/* Workout Programs */}
+      {!isWorkoutActive && (
+        <div className="workout-programs">
+          <div className="programs-header">
+            <h2>Investment Programs</h2>
+            <p>Choose your fitness investment strategy</p>
+          </div>
 
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Instructions</h4>
-                  <ol className="exercise-instructions">
-                    {(() => {
-                      try {
-                        const instructions = selectedExercise?.instructions;
-                        if (instructions && Array.isArray(instructions) && instructions.length > 0) {
-                          return instructions.map((instruction, index) => (
-                            <li key={`instruction-${index}`}>{instruction || `Step ${index + 1}`}</li>
-                          ));
-                        }
-                        return <li>No instructions available</li>;
-                      } catch (error) {
-                        console.error('Error rendering instructions:', error);
-                        return <li>Error loading instructions</li>;
-                      }
-                    })()}
-                  </ol>
-                </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Benefits</h4>
-                  <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                    {(() => {
-                      try {
-                        const benefits = selectedExercise?.benefits;
-                        if (benefits && Array.isArray(benefits) && benefits.length > 0) {
-                          return benefits.map((benefit, index) => (
-                            <li key={`benefit-${index}`}>{benefit || `Benefit ${index + 1}`}</li>
-                          ));
-                        }
-                        return <li>No benefits listed</li>;
-                      } catch (error) {
-                        console.error('Error rendering benefits:', error);
-                        return <li>Error loading benefits</li>;
-                      }
-                    })()}
-                  </ul>
-                </div>
-
-                {(() => {
-                  try {
-                    const precautions = selectedExercise?.precautions;
-                    if (precautions && Array.isArray(precautions) && precautions.length > 0) {
-                      return (
-                        <div style={{ marginBottom: '1.5rem' }}>
-                          <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Precautions</h4>
-                          <ul style={{ paddingLeft: '1.5rem', color: 'var(--warning-600)' }}>
-                            {precautions.map((precaution, index) => (
-                              <li key={`precaution-${index}`}>{precaution || `Precaution ${index + 1}`}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
-                    }
-                    return null;
-                  } catch (error) {
-                    console.error('Error rendering precautions:', error);
-                    return null;
-                  }
-                })()}
-
-                {(() => {
-                  try {
-                    const modifications = selectedExercise?.modifications;
-                    if (modifications && Array.isArray(modifications) && modifications.length > 0) {
-                      return (
-                        <div>
-                          <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Modifications</h4>
-                          <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)' }}>
-                            {modifications.map((modification, index) => (
-                              <li key={`modification-${index}`}>{modification || `Modification ${index + 1}`}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
-                    }
-                    return null;
-                  } catch (error) {
-                    console.error('Error rendering modifications:', error);
-                    return null;
-                  }
-                })()}
-              </div>
-
-              {/* Timer and Controls */}
-              <div>
-                <div style={{
-                  padding: '2rem',
-                  backgroundColor: 'var(--bg-secondary)',
-                  borderRadius: 'var(--border-radius-lg)',
-                  textAlign: 'center',
-                  marginBottom: '1rem'
-                }}>
-                  <div style={{ fontSize: '3rem', fontWeight: '900', color: 'var(--primary-600)', marginBottom: '0.5rem' }}>
-                    {formatTime(timeRemaining)}
+          <div className="programs-grid">
+            {workoutPrograms.map(program => (
+              <div key={program.id} className="program-card">
+                <div className="program-header">
+                  <div className="program-title">
+                    <h3>{program.name}</h3>
+                    <p>{program.subtitle}</p>
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                    {isRestMode ? `Rest Time (Set ${currentSet}/${selectedExercise.sets})` : `Set ${currentSet}/${selectedExercise.sets}`}
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                    <button
-                      className={`btn ${isTimerRunning ? 'btn-danger' : 'btn-primary'}`}
-                      onClick={toggleTimer}
-                    >
-                      {isTimerRunning ? <Pause size={16} /> : <Play size={16} />}
-                      {isTimerRunning ? 'Pause' : 'Start'}
-                    </button>
-                    <button className="btn btn-secondary" onClick={resetTimer}>
-                      <RotateCcw size={16} />
-                      Reset
-                    </button>
+                  <div className="program-badge" style={{backgroundColor: program.color}}>
+                    {program.difficulty}
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '1rem' }}>
-                  <h4 style={{ marginBottom: '0.5rem' }}>Exercise Stats</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
-                    <div>Duration: {formatTime(selectedExercise.duration)}</div>
-                    <div>Sets: {selectedExercise.sets}</div>
-                    <div>Reps: {selectedExercise.reps}</div>
-                    <div>Calories: {selectedExercise.caloriesBurned || 0}</div>
+                <div className="program-stats">
+                  <div className="stat">
+                    <Clock size={16} />
+                    <span>{program.duration} min</span>
+                  </div>
+                  <div className="stat">
+                    <Activity size={16} />
+                    <span>{program.exercises.length} exercises</span>
+                  </div>
+                  <div className="stat">
+                    <TrendingUp size={16} />
+                    <span>{program.expectedReturn}</span>
                   </div>
                 </div>
 
-                <button
-                  className="btn btn-success"
-                  onClick={completeExercise}
-                  style={{ width: '100%' }}
+                <div className="program-risk">
+                  <span className="risk-label">Risk Level:</span>
+                  <span className={`risk-value ${program.risk.toLowerCase()}`}>{program.risk}</span>
+                </div>
+
+                <button 
+                  className="start-workout-btn"
+                  onClick={() => startWorkout(program)}
                 >
-                  <CheckCircle size={16} />
-                  Mark Complete
+                  <PlayCircle />
+                  Start Investment
                 </button>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
-      {!isLoading && filteredExercises.length === 0 && (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-          <Search size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-          <h3 style={{ marginBottom: '0.5rem' }}>No exercises found</h3>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Try adjusting your filters or search terms
-          </p>
+      {/* Exercise Holdings */}
+      <div className="exercise-holdings">
+        <div className="holdings-header">
+          <h2>Your Fitness Holdings</h2>
+          <button className="view-all-btn">
+            View All
+          </button>
         </div>
-      )}
-      </SafeRenderer>
+
+        <div className="holdings-list">
+          {exercisePortfolio.investments.map((investment, index) => (
+            <div key={investment.name} className="holding-item">
+              <div className="holding-info">
+                <div className="holding-name">{investment.name}</div>
+                <div className="holding-subtitle">Fitness Investment</div>
+              </div>
+              
+              <div className="holding-chart">
+                <LineChart size={24} color={investment.color} />
+              </div>
+              
+              <div className="holding-values">
+                <div className="holding-value">${investment.value.toLocaleString()}</div>
+                <div className={`holding-change ${investment.change >= 0 ? 'positive' : 'negative'}`}>
+                  +${investment.change.toFixed(2)} ({investment.percent.toFixed(2)}%)
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="exercise-quick-actions">
+        <button 
+          className="quick-action-btn"
+          onClick={() => soundManager.current.playWorkoutStart()}
+        >
+          <PlayCircle />
+          <span>Quick Start</span>
+        </button>
+        
+        <button 
+          className="quick-action-btn"
+          onClick={() => soundManager.current.playProgressUp()}
+        >
+          <BarChart3 />
+          <span>Progress</span>
+        </button>
+        
+        <button 
+          className="quick-action-btn"
+          onClick={() => soundManager.current.playSetComplete()}
+        >
+          <Trophy />
+          <span>Achievements</span>
+        </button>
+        
+        <button 
+          className="quick-action-btn"
+          onClick={() => soundManager.current.playHeartbeat()}
+        >
+          <Heart />
+          <span>Heart Rate</span>
+        </button>
+      </div>
     </div>
   );
 };
 
-const Exercises = () => {
-  return (
-    <UltraSafeRenderer>
-      <ExercisesCore />
-    </UltraSafeRenderer>
-  );
-};
+// Export the component with error boundary
+const Exercises = () => (
+  <UltraSafeRenderer>
+    <ExercisesCore />
+  </UltraSafeRenderer>
+);
 
 export default Exercises;
