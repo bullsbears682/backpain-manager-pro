@@ -623,18 +623,8 @@ const App = () => {
     }
   };
 
-  // Handle quick action clicks
-  const handleQuickAction = (action) => {
-    handleTabChange(action.tab);
-    
-    // Add haptic feedback simulation
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-  };
-
-  // Handle insight actions
-  const handleInsightAction = (insight) => {
+  // Handle insight actions (updated version)
+  const handleInsightActionLegacy = (insight) => {
     if (insight.actionTab) {
       handleTabChange(insight.actionTab);
     }
