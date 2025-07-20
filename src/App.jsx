@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { NotificationProvider } from './components/Notification';
@@ -39,9 +39,154 @@ import {
   AlertCircle,
   TrendingDown,
   Shield,
-  Clock
+  Clock,
+  Trophy,
+  Flame,
+  Award,
+  Gift,
+  Volume2,
+  VolumeX,
+  PlayCircle,
+  PauseCircle
 } from 'lucide-react';
 import './App.css';
+
+// Duolingo-inspired Sound Manager
+class SoundManager {
+  constructor() {
+    this.audioContext = null;
+    this.sounds = {};
+    this.isEnabled = localStorage.getItem('soundsEnabled') !== 'false';
+    this.initAudioContext();
+  }
+
+  initAudioContext() {
+    try {
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      console.warn('Web Audio API not supported');
+    }
+  }
+
+  // Generate exercise sounds using Web Audio API
+  createTone(frequency, duration, type = 'sine') {
+    if (!this.audioContext || !this.isEnabled) return;
+
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(this.audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+    
+    oscillator.start(this.audioContext.currentTime);
+    oscillator.stop(this.audioContext.currentTime + duration);
+  }
+
+  // Duolingo-style success sounds
+  playSuccess() {
+    this.createTone(523.25, 0.2); // C5
+    setTimeout(() => this.createTone(659.25, 0.2), 100); // E5
+    setTimeout(() => this.createTone(783.99, 0.3), 200); // G5
+  }
+
+  playExerciseStart() {
+    this.createTone(440, 0.3, 'triangle'); // A4
+    setTimeout(() => this.createTone(554.37, 0.3, 'triangle'), 150); // C#5
+  }
+
+  playExerciseComplete() {
+    // Triumphant chord progression
+    this.createTone(261.63, 0.4); // C4
+    this.createTone(329.63, 0.4); // E4
+    this.createTone(392.00, 0.4); // G4
+    setTimeout(() => this.createTone(523.25, 0.6), 200); // C5
+  }
+
+  playStreakSound() {
+    // Fire sound effect
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        this.createTone(200 + Math.random() * 300, 0.1, 'sawtooth');
+      }, i * 50);
+    }
+  }
+
+  playLevelUp() {
+    // Ascending scale
+    const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+    notes.forEach((note, i) => {
+      setTimeout(() => this.createTone(note, 0.2), i * 100);
+    });
+  }
+
+  playCorrectAnswer() {
+    this.createTone(659.25, 0.2); // E5
+    setTimeout(() => this.createTone(783.99, 0.2), 100); // G5
+  }
+
+  playWrongAnswer() {
+    this.createTone(146.83, 0.4, 'sawtooth'); // D3 - low and dissonant
+  }
+
+  playNotification() {
+    this.createTone(440, 0.15); // A4
+    setTimeout(() => this.createTone(523.25, 0.15), 200); // C5
+  }
+
+  playBreathing(inhale = true) {
+    if (inhale) {
+      // Ascending tone for inhale
+      const oscillator = this.audioContext?.createOscillator();
+      const gainNode = this.audioContext?.createGain();
+      
+      if (oscillator && gainNode) {
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(220, this.audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(330, this.audioContext.currentTime + 2);
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime + 1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 2);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + 2);
+      }
+    } else {
+      // Descending tone for exhale
+      const oscillator = this.audioContext?.createOscillator();
+      const gainNode = this.audioContext?.createGain();
+      
+      if (oscillator && gainNode) {
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(330, this.audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(220, this.audioContext.currentTime + 3);
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 3);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + 3);
+      }
+    }
+  }
+
+  toggle() {
+    this.isEnabled = !this.isEnabled;
+    localStorage.setItem('soundsEnabled', this.isEnabled);
+  }
+}
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -63,6 +208,110 @@ const App = () => {
     sleep: { completed: true, target: 8 } // hours
   });
 
+  // Duolingo-inspired state
+  const [userStats, setUserStats] = useState({
+    streak: 3,
+    totalXP: 150,
+    level: 2,
+    achievements: [],
+    dailyGoalCompleted: false,
+    exercisesCompleted: 5,
+    painLogsToday: 1
+  });
+  const [showAchievement, setShowAchievement] = useState(null);
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const soundManager = useRef(new SoundManager());
+
+  // Duolingo-inspired gamification functions
+  const addXP = (amount, reason) => {
+    setUserStats(prev => {
+      const newXP = prev.totalXP + amount;
+      const newLevel = Math.floor(newXP / 100) + 1;
+      
+      if (newLevel > prev.level) {
+        setShowLevelUp(true);
+        soundManager.current.playLevelUp();
+        setTimeout(() => setShowLevelUp(false), 3000);
+      }
+      
+      return {
+        ...prev,
+        totalXP: newXP,
+        level: newLevel
+      };
+    });
+    
+    soundManager.current.playSuccess();
+    showNotification(`+${amount} XP - ${reason}`, 'success');
+  };
+
+  const updateStreak = () => {
+    const today = new Date().toDateString();
+    const lastActive = localStorage.getItem('lastActiveDate');
+    
+    if (lastActive !== today) {
+      setUserStats(prev => {
+        const newStreak = prev.streak + 1;
+        if (newStreak > 0 && newStreak % 7 === 0) {
+          setShowStreakCelebration(true);
+          soundManager.current.playStreakSound();
+          setTimeout(() => setShowStreakCelebration(false), 4000);
+          addXP(50, 'Weekly streak bonus!');
+        }
+        return { ...prev, streak: newStreak };
+      });
+      localStorage.setItem('lastActiveDate', today);
+    }
+  };
+
+  const unlockAchievement = (achievementId, title, description) => {
+    setUserStats(prev => {
+      if (prev.achievements.includes(achievementId)) return prev;
+      
+      const newAchievements = [...prev.achievements, achievementId];
+      setShowAchievement({ title, description });
+      soundManager.current.playSuccess();
+      setTimeout(() => setShowAchievement(null), 4000);
+      addXP(25, `Achievement: ${title}`);
+      
+      return { ...prev, achievements: newAchievements };
+    });
+  };
+
+  const completeExercise = (exerciseName) => {
+    soundManager.current.playExerciseComplete();
+    addXP(15, `Completed ${exerciseName}`);
+    
+    setUserStats(prev => ({
+      ...prev,
+      exercisesCompleted: prev.exercisesCompleted + 1
+    }));
+
+    // Check for achievements
+    if (userStats.exercisesCompleted + 1 === 10) {
+      unlockAchievement('first_10_exercises', 'Exercise Enthusiast', 'Completed 10 exercises!');
+    }
+    if (userStats.exercisesCompleted + 1 === 50) {
+      unlockAchievement('exercise_master', 'Exercise Master', 'Completed 50 exercises!');
+    }
+  };
+
+  const logPain = () => {
+    addXP(10, 'Pain logged');
+    setUserStats(prev => ({
+      ...prev,
+      painLogsToday: prev.painLogsToday + 1
+    }));
+    
+    updateStreak();
+    
+    if (userStats.painLogsToday + 1 === 1) {
+      unlockAchievement('first_log', 'Getting Started', 'Logged your first pain entry!');
+    }
+  };
+
   // Smart insights generation (Apple Health/Notion AI style)
   const generateSmartInsights = () => {
     const insights = [
@@ -75,7 +324,8 @@ const App = () => {
         priority: 'high',
         color: 'green',
         action: 'View detailed report',
-        actionTab: 'reports'
+        actionTab: 'reports',
+        xp: 5
       },
       {
         id: 2,
@@ -86,7 +336,8 @@ const App = () => {
         priority: 'medium',
         color: 'blue',
         action: 'Start exercises',
-        actionTab: 'exercises'
+        actionTab: 'exercises',
+        xp: 15
       },
       {
         id: 3,
@@ -97,7 +348,8 @@ const App = () => {
         priority: 'low',
         color: 'purple',
         action: 'View patterns',
-        actionTab: 'reports'
+        actionTab: 'reports',
+        xp: 25
       },
       {
         id: 4,
@@ -108,7 +360,8 @@ const App = () => {
         priority: 'high',
         color: 'orange',
         action: 'Mark as taken',
-        actionTab: 'medications'
+        actionTab: 'medications',
+        xp: 10
       }
     ];
     
@@ -164,7 +417,8 @@ const App = () => {
             { id: 1, label: 'Log Pain', icon: Heart, tab: 'pain-tracking', color: 'red' },
             { id: 2, label: 'Quick Exercise', icon: Activity, tab: 'exercises', color: 'blue' },
             { id: 3, label: 'Take Medication', icon: Pill, tab: 'medications', color: 'green' },
-            { id: 4, label: 'Book Appointment', icon: Calendar, tab: 'appointments', color: 'purple' }
+            { id: 4, label: 'Breathing Exercise', icon: PlayCircle, action: 'breathing', color: 'purple' },
+            { id: 5, label: 'Demo Celebration', icon: Gift, action: 'demo', color: 'gold' }
           ]);
         }, 500);
       }
@@ -240,6 +494,123 @@ const App = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPageMinimized]);
+
+  // Breathing exercise with sound
+  const startBreathingExercise = () => {
+    const guide = document.getElementById('breathing-guide');
+    guide.classList.remove('hidden');
+    
+    let cycle = 0;
+    const maxCycles = 5;
+    
+    const breathingCycle = () => {
+      if (cycle >= maxCycles) {
+        guide.classList.add('hidden');
+        addXP(20, 'Completed breathing exercise');
+        return;
+      }
+      
+      // Inhale phase
+      guide.querySelector('.breathing-text').textContent = 'Breathe In...';
+      guide.querySelector('.breathing-circle').classList.add('inhale');
+      soundManager.current.playBreathing(true);
+      
+      setTimeout(() => {
+        // Exhale phase
+        guide.querySelector('.breathing-text').textContent = 'Breathe Out...';
+        guide.querySelector('.breathing-circle').classList.remove('inhale');
+        guide.querySelector('.breathing-circle').classList.add('exhale');
+        soundManager.current.playBreathing(false);
+        
+        setTimeout(() => {
+          guide.querySelector('.breathing-circle').classList.remove('exhale');
+          cycle++;
+          setTimeout(breathingCycle, 1000);
+        }, 3000);
+      }, 4000);
+    };
+    
+    breathingCycle();
+  };
+
+  // Handle insight actions with XP rewards
+  const handleInsightAction = (insight) => {
+    addXP(insight.xp, `Acted on insight: ${insight.title}`);
+    handleTabChange(insight.actionTab);
+    soundManager.current.playCorrectAnswer();
+  };
+
+  // Handle quick actions with sound feedback
+  const handleQuickAction = (action) => {
+    soundManager.current.playExerciseStart();
+    
+    // Handle special actions
+    if (action.action === 'breathing') {
+      startBreathingExercise();
+      return;
+    } else if (action.action === 'demo') {
+      // Demo celebrations for testing
+      const demos = ['streak', 'levelup', 'achievement'];
+      const randomDemo = demos[Math.floor(Math.random() * demos.length)];
+      
+      if (randomDemo === 'streak') {
+        setUserStats(prev => ({ ...prev, streak: prev.streak + 7 }));
+        setShowStreakCelebration(true);
+        soundManager.current.playStreakSound();
+        setTimeout(() => setShowStreakCelebration(false), 4000);
+      } else if (randomDemo === 'levelup') {
+        setShowLevelUp(true);
+        soundManager.current.playLevelUp();
+        setTimeout(() => setShowLevelUp(false), 3000);
+      } else if (randomDemo === 'achievement') {
+        setShowAchievement({ title: 'Demo Master', description: 'You tried the demo celebration!' });
+        soundManager.current.playSuccess();
+        setTimeout(() => setShowAchievement(null), 4000);
+      }
+      return;
+    }
+    
+    if (action.tab) {
+      handleTabChange(action.tab);
+    }
+    
+    // Add specific rewards based on action
+    if (action.label === 'Log Pain') {
+      setTimeout(() => logPain(), 1000);
+    } else if (action.label === 'Quick Exercise') {
+      setTimeout(() => completeExercise('Quick Exercise'), 5000);
+    }
+  };
+
+  // Show notification with sound
+  const showNotification = (message, type = 'info') => {
+    soundManager.current.playNotification();
+    setNotifications(prev => [
+      ...prev,
+      { id: Date.now(), type, message, time: 'now' }
+    ]);
+    
+    // Auto-remove notification after 3 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.slice(1));
+    }, 3000);
+  };
+
+  // Initialize user stats from localStorage
+  useEffect(() => {
+    const savedStats = localStorage.getItem('userStats');
+    if (savedStats) {
+      setUserStats(JSON.parse(savedStats));
+    }
+    
+    // Check if user should get a streak
+    updateStreak();
+  }, []);
+
+  // Save user stats to localStorage
+  useEffect(() => {
+    localStorage.setItem('userStats', JSON.stringify(userStats));
+  }, [userStats]);
 
   // Handle back navigation
   const handleBack = () => {
@@ -412,11 +783,43 @@ const App = () => {
             </div>
             
             <div className="header-right">
+              {/* Duolingo-style User Stats */}
+              <div className="user-stats">
+                <div className="streak-container">
+                  <Flame className="streak-icon" />
+                  <span className="streak-count">{userStats.streak}</span>
+                  <span className="streak-label">day streak</span>
+                </div>
+                
+                <div className="xp-container">
+                  <Star className="xp-icon" />
+                  <span className="xp-count">{userStats.totalXP}</span>
+                  <span className="xp-label">XP</span>
+                </div>
+                
+                <div className="level-container">
+                  <Trophy className="level-icon" />
+                  <span className="level-count">Level {userStats.level}</span>
+                </div>
+              </div>
+
               <div className="health-score">
                 <Shield className="score-icon" />
                 <span className="score-value">{healthScore}</span>
                 <span className="score-label">Health Score</span>
               </div>
+              
+              {/* Sound Toggle */}
+              <button 
+                className="sound-toggle-btn"
+                onClick={() => {
+                  soundManager.current.toggle();
+                  setSoundsEnabled(!soundsEnabled);
+                }}
+                title={soundsEnabled ? 'Disable sounds' : 'Enable sounds'}
+              >
+                {soundsEnabled ? <Volume2 /> : <VolumeX />}
+              </button>
               
               <button className="notification-btn">
                 <Bell />
@@ -461,6 +864,7 @@ const App = () => {
                       <div 
                         key={insight.id} 
                         className={`insight-card ${insight.priority} ${insight.color}`}
+                        data-xp={insight.xp}
                         onClick={() => handleInsightAction(insight)}
                       >
                         <div className="insight-icon">
@@ -588,6 +992,68 @@ const App = () => {
                 </div>
               </div>
             </main>
+          </div>
+
+          {/* Duolingo-style Celebration Overlays */}
+          {showStreakCelebration && (
+            <div className="streak-celebration-overlay">
+              <div className="celebration-content">
+                <div className="celebration-animation">
+                  <Flame className="celebration-flame" />
+                  <div className="fire-particles">
+                    {[...Array(8)].map((_, i) => (
+                      <div key={i} className={`fire-particle particle-${i}`}>🔥</div>
+                    ))}
+                  </div>
+                </div>
+                <h2>🔥 {userStats.streak} Day Streak! 🔥</h2>
+                <p>You're on fire! Keep up the amazing consistency!</p>
+                <div className="celebration-xp">+50 XP Bonus!</div>
+              </div>
+            </div>
+          )}
+
+          {showLevelUp && (
+            <div className="level-up-overlay">
+              <div className="level-up-content">
+                <div className="level-up-animation">
+                  <Trophy className="celebration-trophy" />
+                  <div className="sparkles">
+                    {[...Array(12)].map((_, i) => (
+                      <div key={i} className={`sparkle sparkle-${i}`}>✨</div>
+                    ))}
+                  </div>
+                </div>
+                <h2>🎉 Level Up! 🎉</h2>
+                <div className="new-level">Level {userStats.level}</div>
+                <p>Congratulations! You've reached a new level in your health journey!</p>
+              </div>
+            </div>
+          )}
+
+          {showAchievement && (
+            <div className="achievement-overlay">
+              <div className="achievement-content">
+                <div className="achievement-animation">
+                  <Award className="celebration-award" />
+                  <div className="achievement-glow"></div>
+                </div>
+                <h2>🏆 Achievement Unlocked! 🏆</h2>
+                <div className="achievement-title">{showAchievement.title}</div>
+                <p>{showAchievement.description}</p>
+                <div className="achievement-xp">+25 XP</div>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Exercise Breathing Guide */}
+          <div className="breathing-guide hidden" id="breathing-guide">
+            <div className="breathing-circle">
+              <div className="breathing-text">Breathe</div>
+              <button className="breathing-start" onClick={() => startBreathingExercise()}>
+                <PlayCircle />
+              </button>
+            </div>
           </div>
         </div>
       </NotificationProvider>

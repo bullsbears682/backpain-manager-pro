@@ -1,5 +1,5 @@
 // Service Worker for BackPain Manager Pro PWA
-const CACHE_NAME = 'backpain-manager-pro-v2.1.0';
+const CACHE_NAME = 'backpain-manager-pro-v2.2.0';
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',

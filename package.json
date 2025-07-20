@@ -1,6 +1,6 @@
 {
   "name": "backpain-manager-pro",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Professional Back Pain Management Application",
   "main": "src/index.js",
   "scripts": {
