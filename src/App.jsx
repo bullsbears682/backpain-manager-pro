@@ -167,7 +167,9 @@ function App() {
     sleepQuality: 7,
     energyLevel: 6,
     stressLevel: 4,
-    overallWellness: 68
+    overallWellness: 68,
+    mood: 7,
+    hydration: 6
   });
 
   // Exercise & Progress
@@ -188,6 +190,11 @@ function App() {
   const [musicVolume, setMusicVolume] = useState(0.3);
   const [effectsVolume, setEffectsVolume] = useState(0.5);
   const [selectedBodyPart, setSelectedBodyPart] = useState('back');
+  const [darkMode, setDarkMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [reminderTime, setReminderTime] = useState('09:00');
+  const [exerciseGoal, setExerciseGoal] = useState(3);
+  const [lastBackup, setLastBackup] = useState(null);
 
   // Refs
   const audioManager = useRef(new HealthAudioManager());
@@ -516,22 +523,31 @@ function App() {
       completedExercises,
       totalSessions,
       streakDays,
+      settings: {
+        darkMode,
+        reminderTime,
+        exerciseGoal,
+        musicVolume,
+        effectsVolume
+      },
       exportDate: new Date().toISOString(),
-      weeklyProgress: generateWeeklyData()
+      weeklyProgress: generateWeeklyData(),
+      appVersion: '2.0.0'
     };
     
     const dataStr = JSON.stringify(progressData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `health-progress-${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `painfree-pro-backup-${new Date().toISOString().split('T')[0]}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
     
+    setLastBackup(new Date());
     audioManager.current.playSuccess();
-    showNotification('Progress exported successfully!', 'success');
+    showNotification('Complete backup exported successfully! 📁', 'success');
   };
 
   const exportCSV = () => {
@@ -594,6 +610,162 @@ function App() {
     if (level <= 3) return '#4CAF50';
     if (level <= 6) return '#FF9800';
     return '#F44336';
+  };
+
+  // New Utility Functions
+  const importProgress = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        
+        if (importedData.healthMetrics) setHealthMetrics(importedData.healthMetrics);
+        if (importedData.completedExercises) setCompletedExercises(importedData.completedExercises);
+        if (importedData.totalSessions) setTotalSessions(importedData.totalSessions);
+        if (importedData.streakDays) setStreakDays(importedData.streakDays);
+        if (importedData.settings) {
+          setDarkMode(importedData.settings.darkMode || false);
+          setReminderTime(importedData.settings.reminderTime || '09:00');
+          setExerciseGoal(importedData.settings.exerciseGoal || 3);
+          setMusicVolume(importedData.settings.musicVolume || 0.3);
+          setEffectsVolume(importedData.settings.effectsVolume || 0.5);
+        }
+        
+        audioManager.current.playSuccess();
+        showNotification('Data imported successfully! 📥', 'success');
+      } catch (error) {
+        audioManager.current.playError();
+        showNotification('Import failed. Invalid file format.', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const resetAllData = () => {
+    if (window.confirm('⚠️ This will delete ALL your progress data. Are you sure?')) {
+      setHealthMetrics({
+        painLevel: 5,
+        mobilityScore: 50,
+        sleepQuality: 5,
+        energyLevel: 5,
+        stressLevel: 5,
+        overallWellness: 50,
+        mood: 5,
+        hydration: 5
+      });
+      setCompletedExercises([]);
+      setTotalSessions(0);
+      setStreakDays(0);
+      setCurrentExercise(null);
+      setIsExercising(false);
+      setIsResting(false);
+      
+      audioManager.current.playError();
+      showNotification('All data has been reset! 🔄', 'info');
+    }
+  };
+
+  const quickPainAssessment = () => {
+    const questions = [
+      'Rate your current pain level (1-10)',
+      'How is your mobility today? (1-10)',
+      'How well did you sleep? (1-10)',
+      'What is your energy level? (1-10)'
+    ];
+    
+    let responses = [];
+    questions.forEach((question, index) => {
+      const response = prompt(question);
+      if (response && !isNaN(response) && response >= 1 && response <= 10) {
+        responses.push(parseInt(response));
+      } else {
+        responses.push(healthMetrics[['painLevel', 'mobilityScore', 'sleepQuality', 'energyLevel'][index]]);
+      }
+    });
+    
+    setHealthMetrics(prev => ({
+      ...prev,
+      painLevel: responses[0],
+      mobilityScore: responses[1] * 10,
+      sleepQuality: responses[2],
+      energyLevel: responses[3],
+      overallWellness: Math.round((responses[1] * 10 + responses[2] * 10 + responses[3] * 10 - responses[0] * 5) / 3)
+    }));
+    
+    audioManager.current.playSuccess();
+    showNotification('Health assessment updated! 📋', 'success');
+  };
+
+  const setReminder = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          const now = new Date();
+          const reminderDate = new Date();
+          const [hours, minutes] = reminderTime.split(':');
+          reminderDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          
+          if (reminderDate <= now) {
+            reminderDate.setDate(reminderDate.getDate() + 1);
+          }
+          
+          const timeUntilReminder = reminderDate.getTime() - now.getTime();
+          
+          setTimeout(() => {
+            new Notification('PainFree Pro Reminder 🏥', {
+              body: 'Time for your daily exercise session!',
+              icon: '🏥'
+            });
+            audioManager.current.playNotification();
+          }, timeUntilReminder);
+          
+          showNotification(`Reminder set for ${reminderTime}! 🔔`, 'success');
+        }
+      });
+    }
+  };
+
+  const generateHealthReport = () => {
+    const report = `
+PAINFREE PRO - HEALTH REPORT
+Generated: ${new Date().toLocaleString()}
+===================================
+
+CURRENT HEALTH STATUS:
+• Pain Level: ${healthMetrics.painLevel}/10 ${healthMetrics.painLevel <= 3 ? '✅' : healthMetrics.painLevel <= 6 ? '⚠️' : '🔴'}
+• Mobility Score: ${healthMetrics.mobilityScore}% ${healthMetrics.mobilityScore >= 70 ? '✅' : '⚠️'}
+• Sleep Quality: ${healthMetrics.sleepQuality}/10 ${healthMetrics.sleepQuality >= 7 ? '✅' : '⚠️'}
+• Energy Level: ${healthMetrics.energyLevel}/10 ${healthMetrics.energyLevel >= 7 ? '✅' : '⚠️'}
+• Stress Level: ${healthMetrics.stressLevel}/10 ${healthMetrics.stressLevel <= 4 ? '✅' : '⚠️'}
+• Overall Wellness: ${healthMetrics.overallWellness}% ${healthMetrics.overallWellness >= 70 ? '✅' : '⚠️'}
+
+EXERCISE STATISTICS:
+• Total Sessions: ${totalSessions}
+• Current Streak: ${streakDays} days
+• Total Exercises: ${completedExercises.length}
+• Average Pain Reduction: ${completedExercises.length > 0 ? (completedExercises.reduce((acc, ex) => acc + ex.painReduction, 0) / completedExercises.length).toFixed(1) : 0}%
+
+RECOMMENDATIONS:
+${healthMetrics.painLevel > 6 ? '• Consider consulting a healthcare professional for high pain levels\n' : ''}
+${healthMetrics.mobilityScore < 50 ? '• Focus on mobility and flexibility exercises\n' : ''}
+${healthMetrics.sleepQuality < 6 ? '• Improve sleep hygiene and consider relaxation techniques\n' : ''}
+${healthMetrics.stressLevel > 6 ? '• Practice stress management and breathing exercises\n' : ''}
+${totalSessions < exerciseGoal ? '• Increase exercise frequency to meet your goals\n' : ''}
+
+Generated by PainFree Pro v2.0 🏥
+    `.trim();
+    
+    const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(report);
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', `health-report-${new Date().toISOString().split('T')[0]}.txt`);
+    linkElement.click();
+    
+    audioManager.current.playSuccess();
+    showNotification('Health report generated! 📋', 'success');
   };
 
   return (
@@ -690,19 +862,63 @@ function App() {
                   </div>
                 </div>
 
-                <div className="metric-card">
-                  <div className="metric-icon">💚</div>
-                  <div className="metric-info">
-                    <span className="metric-label">Overall Wellness</span>
-                    <span className="metric-value">{healthMetrics.overallWellness}%</span>
-                  </div>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill wellness"
-                      style={{ width: `${healthMetrics.overallWellness}%` }}
-                    ></div>
-                  </div>
-                </div>
+                                 <div className="metric-card">
+                   <div className="metric-icon">💚</div>
+                   <div className="metric-info">
+                     <span className="metric-label">Overall Wellness</span>
+                     <span className="metric-value">{healthMetrics.overallWellness}%</span>
+                   </div>
+                   <div className="progress-bar">
+                     <div 
+                       className="progress-fill wellness"
+                       style={{ width: `${healthMetrics.overallWellness}%` }}
+                     ></div>
+                   </div>
+                 </div>
+
+                 <div className="metric-card">
+                   <div className="metric-icon">😊</div>
+                   <div className="metric-info">
+                     <span className="metric-label">Mood</span>
+                     <span className="metric-value">{healthMetrics.mood}/10</span>
+                   </div>
+                   <div className="mood-slider">
+                     <input
+                       type="range"
+                       min="1"
+                       max="10"
+                       value={healthMetrics.mood}
+                       onChange={(e) => {
+                         setHealthMetrics(prev => ({ ...prev, mood: parseInt(e.target.value) }));
+                         audioManager.current.playClick();
+                       }}
+                       className="slider"
+                     />
+                   </div>
+                 </div>
+
+                 <div className="metric-card">
+                   <div className="metric-icon">💧</div>
+                   <div className="metric-info">
+                     <span className="metric-label">Hydration</span>
+                     <span className="metric-value">{healthMetrics.hydration}/10</span>
+                   </div>
+                   <div className="hydration-buttons">
+                     <button 
+                       className="hydration-btn"
+                       onClick={() => {
+                         setHealthMetrics(prev => ({ 
+                           ...prev, 
+                           hydration: Math.min(10, prev.hydration + 1) 
+                         }));
+                         audioManager.current.playClick();
+                         showNotification('Hydration level increased! 💧', 'info');
+                       }}
+                     >
+                       + Glass
+                     </button>
+                   </div>
+                 </div>
               </div>
             </div>
 
@@ -732,29 +948,61 @@ function App() {
               )}
             </div>
 
-            <div className="quick-actions">
-              <button 
-                className="quick-action-btn"
-                onClick={() => switchTab('exercises')}
-              >
-                <span className="action-icon">💪</span>
-                <span>Start Exercise</span>
-              </button>
-              <button 
-                className="quick-action-btn"
-                onClick={() => audioManager.current.playBinauralBeats(200, 10, 10000)}
-              >
-                <span className="action-icon">🧘</span>
-                <span>Relaxation Sounds</span>
-              </button>
-              <button 
-                className="quick-action-btn"
-                onClick={exportProgress}
-              >
-                <span className="action-icon">📊</span>
-                <span>Export Progress</span>
-              </button>
-            </div>
+                         <div className="quick-actions">
+               <button 
+                 className="quick-action-btn primary"
+                 onClick={() => switchTab('exercises')}
+               >
+                 <span className="action-icon">💪</span>
+                 <span>Start Exercise</span>
+                 <span className="action-badge">{exerciseGoal - totalSessions > 0 ? `${exerciseGoal - totalSessions} left` : 'Goal met!'}</span>
+               </button>
+               
+               <button 
+                 className="quick-action-btn"
+                 onClick={quickPainAssessment}
+               >
+                 <span className="action-icon">📋</span>
+                 <span>Quick Assessment</span>
+                 <span className="action-desc">Update all metrics</span>
+               </button>
+               
+               <button 
+                 className="quick-action-btn"
+                 onClick={() => audioManager.current.playBinauralBeats(200, 10, 10000)}
+               >
+                 <span className="action-icon">🧘</span>
+                 <span>Relaxation Sounds</span>
+                 <span className="action-desc">10 min session</span>
+               </button>
+               
+               <button 
+                 className="quick-action-btn"
+                 onClick={generateHealthReport}
+               >
+                 <span className="action-icon">📄</span>
+                 <span>Health Report</span>
+                 <span className="action-desc">Generate summary</span>
+               </button>
+               
+               <button 
+                 className="quick-action-btn"
+                 onClick={setReminder}
+               >
+                 <span className="action-icon">🔔</span>
+                 <span>Set Reminder</span>
+                 <span className="action-desc">{reminderTime}</span>
+               </button>
+               
+               <button 
+                 className="quick-action-btn"
+                 onClick={() => setShowSettings(true)}
+               >
+                 <span className="action-icon">⚙️</span>
+                 <span>Settings</span>
+                 <span className="action-desc">Backup & preferences</span>
+               </button>
+             </div>
           </div>
         )}
 
