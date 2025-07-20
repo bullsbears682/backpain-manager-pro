@@ -300,6 +300,20 @@ const App = () => {
     });
   };
 
+  // Show notification with sound
+  const showNotification = (message, type = 'info') => {
+    soundManager.current.playNotification();
+    setNotifications(prev => [
+      ...prev,
+      { id: Date.now(), type, message, time: 'now' }
+    ]);
+    
+    // Auto-remove notification after 3 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.slice(1));
+    }, 3000);
+  };
+
   const addXP = (amount, reason) => {
     setUserStats(prev => {
       const newXP = prev.totalXP + amount;
@@ -355,20 +369,6 @@ const App = () => {
       updatePortfolio('update', randomChange);
       setIsRefreshing(false);
     }, 1500);
-  };
-
-  // Show notification with sound
-  const showNotification = (message, type = 'info') => {
-    soundManager.current.playNotification();
-    setNotifications(prev => [
-      ...prev,
-      { id: Date.now(), type, message, time: 'now' }
-    ]);
-    
-    // Auto-remove notification after 3 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.slice(1));
-    }, 3000);
   };
 
   const updateStreak = () => {
