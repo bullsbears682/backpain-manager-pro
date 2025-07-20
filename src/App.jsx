@@ -1100,10 +1100,9 @@ const App = () => {
                 <CurrentComponent />
               </main>
             )}
-          </div>
 
-          {/* Robinhood-style Celebration Overlays */}
-          {showCelebration && (
+            {/* Robinhood-style Celebration Overlays */}
+            {showCelebration && (
             <div className="robinhood-celebration-overlay">
               <div className="celebration-content">
                 {showCelebration.type === 'levelup' && (
@@ -1144,9 +1143,9 @@ const App = () => {
       </NotificationProvider>
     </ErrorBoundary>
   );
+};
 
-              {/* Page Controls with breadcrumbs */}
-              <div className="page-controls">
+export default App;
                 <div className="breadcrumbs">
                   <span className="breadcrumb">Home</span>
                   <span className="breadcrumb-separator">›</span>
