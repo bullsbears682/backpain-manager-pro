@@ -706,20 +706,6 @@ const App = () => {
     }
   };
 
-  // Show notification with sound
-  const showNotification = (message, type = 'info') => {
-    soundManager.current.playNotification();
-    setNotifications(prev => [
-      ...prev,
-      { id: Date.now(), type, message, time: 'now' }
-    ]);
-    
-    // Auto-remove notification after 3 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.slice(1));
-    }, 3000);
-  };
-
   // Initialize user stats from localStorage
   useEffect(() => {
     const savedStats = localStorage.getItem('userStats');
