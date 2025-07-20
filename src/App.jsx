@@ -47,12 +47,25 @@ import {
   Volume2,
   VolumeX,
   PlayCircle,
-  PauseCircle
+  PauseCircle,
+  DollarSign,
+  LineChart,
+  PieChart,
+  BarChart2,
+  Wallet,
+  CreditCard,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  EyeOff,
+  Settings as SettingsIcon,
+  Smartphone,
+  Headphones
 } from 'lucide-react';
 import './App.css';
 
-// Duolingo-inspired Sound Manager
-class SoundManager {
+// Robinhood-inspired Sound Manager with Financial Audio Feedback
+class RobinhoodSoundManager {
   constructor() {
     this.audioContext = null;
     this.sounds = {};
@@ -68,123 +81,142 @@ class SoundManager {
     }
   }
 
-  // Generate exercise sounds using Web Audio API
-  createTone(frequency, duration, type = 'sine') {
+  // Generate complex tones for financial-style feedback
+  createTone(frequency, duration, type = 'sine', envelope = 'standard') {
     if (!this.audioContext || !this.isEnabled) return;
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
+    const filter = this.audioContext.createBiquadFilter();
     
-    oscillator.connect(gainNode);
+    oscillator.connect(filter);
+    filter.connect(gainNode);
     gainNode.connect(this.audioContext.destination);
     
     oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
     oscillator.type = type;
     
-    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+    // Robinhood-style filter for crisp sounds
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2000, this.audioContext.currentTime);
+    filter.Q.setValueAtTime(1, this.audioContext.currentTime);
+    
+    // Different envelopes for different actions
+    switch (envelope) {
+      case 'buy':
+        gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.3, this.audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.1, this.audioContext.currentTime + duration);
+        break;
+      case 'sell':
+        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+        break;
+      default:
+        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+    }
     
     oscillator.start(this.audioContext.currentTime);
     oscillator.stop(this.audioContext.currentTime + duration);
   }
 
-  // Duolingo-style success sounds
-  playSuccess() {
-    this.createTone(523.25, 0.2); // C5
-    setTimeout(() => this.createTone(659.25, 0.2), 100); // E5
-    setTimeout(() => this.createTone(783.99, 0.3), 200); // G5
+  // Robinhood-style success sounds (like stock purchase)
+  playPortfolioGain() {
+    // Ascending arpeggio like a winning trade
+    const notes = [220, 277.18, 329.63, 415.30]; // A3, C#4, E4, G#4
+    notes.forEach((note, i) => {
+      setTimeout(() => this.createTone(note, 0.3, 'triangle', 'buy'), i * 100);
+    });
   }
 
-  playExerciseStart() {
-    this.createTone(440, 0.3, 'triangle'); // A4
-    setTimeout(() => this.createTone(554.37, 0.3, 'triangle'), 150); // C#5
+  playPortfolioLoss() {
+    // Descending tone like a losing trade
+    const notes = [415.30, 329.63, 277.18, 220]; // G#4, E4, C#4, A3
+    notes.forEach((note, i) => {
+      setTimeout(() => this.createTone(note, 0.4, 'sawtooth', 'sell'), i * 150);
+    });
   }
 
-  playExerciseComplete() {
-    // Triumphant chord progression
-    this.createTone(261.63, 0.4); // C4
-    this.createTone(329.63, 0.4); // E4
-    this.createTone(392.00, 0.4); // G4
-    setTimeout(() => this.createTone(523.25, 0.6), 200); // C5
+  playTransaction() {
+    // Clean transaction sound (like Robinhood buy/sell)
+    this.createTone(800, 0.1, 'triangle');
+    setTimeout(() => this.createTone(600, 0.15, 'sine'), 100);
   }
 
-  playStreakSound() {
-    // Fire sound effect
-    for (let i = 0; i < 5; i++) {
+  playNotification() {
+    // Subtle notification (like price alert)
+    this.createTone(1000, 0.08, 'sine');
+    setTimeout(() => this.createTone(1200, 0.08, 'sine'), 120);
+  }
+
+  playSwipe() {
+    // Card swipe sound for navigation
+    const frequency = 400 + Math.random() * 200;
+    this.createTone(frequency, 0.05, 'triangle');
+  }
+
+  playPullToRefresh() {
+    // Refresh sound like pulling down stocks
+    for (let i = 0; i < 3; i++) {
       setTimeout(() => {
-        this.createTone(200 + Math.random() * 300, 0.1, 'sawtooth');
+        this.createTone(300 + i * 100, 0.1, 'sine');
       }, i * 50);
     }
   }
 
-  playLevelUp() {
-    // Ascending scale
-    const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+  playHealthImprovement() {
+    // Like a stock going up
+    const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
     notes.forEach((note, i) => {
-      setTimeout(() => this.createTone(note, 0.2), i * 100);
+      setTimeout(() => this.createTone(note, 0.2, 'triangle', 'buy'), i * 80);
     });
   }
 
-  playCorrectAnswer() {
-    this.createTone(659.25, 0.2); // E5
-    setTimeout(() => this.createTone(783.99, 0.2), 100); // G5
+  playHealthDecline() {
+    // Like a stock going down
+    const notes = [523.25, 392.00, 329.63, 261.63]; // C5, G4, E4, C4
+    notes.forEach((note, i) => {
+      setTimeout(() => this.createTone(note, 0.25, 'sawtooth', 'sell'), i * 100);
+    });
   }
 
-  playWrongAnswer() {
-    this.createTone(146.83, 0.4, 'sawtooth'); // D3 - low and dissonant
+  playAchievement() {
+    // Like hitting a profit target
+    this.createTone(523.25, 0.2); // C5
+    setTimeout(() => this.createTone(659.25, 0.2), 100); // E5
+    setTimeout(() => this.createTone(783.99, 0.3), 200); // G5
+    setTimeout(() => this.createTone(1046.50, 0.4), 300); // C6
   }
 
-  playNotification() {
-    this.createTone(440, 0.15); // A4
-    setTimeout(() => this.createTone(523.25, 0.15), 200); // C5
+  playCardFlip() {
+    // Card flip animation sound
+    this.createTone(600, 0.08, 'square');
+    setTimeout(() => this.createTone(400, 0.08, 'square'), 80);
   }
 
-  playBreathing(inhale = true) {
-    if (inhale) {
-      // Ascending tone for inhale
-      const oscillator = this.audioContext?.createOscillator();
-      const gainNode = this.audioContext?.createGain();
-      
-      if (oscillator && gainNode) {
-        oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(220, this.audioContext.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(330, this.audioContext.currentTime + 2);
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime + 1);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 2);
-        
-        oscillator.start(this.audioContext.currentTime);
-        oscillator.stop(this.audioContext.currentTime + 2);
-      }
-    } else {
-      // Descending tone for exhale
-      const oscillator = this.audioContext?.createOscillator();
-      const gainNode = this.audioContext?.createGain();
-      
-      if (oscillator && gainNode) {
-        oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(330, this.audioContext.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(220, this.audioContext.currentTime + 3);
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 3);
-        
-        oscillator.start(this.audioContext.currentTime);
-        oscillator.stop(this.audioContext.currentTime + 3);
-      }
+  playButtonPress() {
+    // Subtle button feedback
+    this.createTone(800, 0.05, 'triangle');
+  }
+
+  playMarketOpen() {
+    // Like market opening bell
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        this.createTone(800 + Math.sin(i) * 200, 0.1, 'triangle');
+      }, i * 200);
     }
   }
 
   toggle() {
     this.isEnabled = !this.isEnabled;
     localStorage.setItem('soundsEnabled', this.isEnabled);
+    
+    // Play feedback sound when toggling
+    if (this.isEnabled) {
+      setTimeout(() => this.playNotification(), 100);
+    }
   }
 }
 
@@ -193,58 +225,150 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [pageHistory, setPageHistory] = useState(['dashboard']);
-  const [isPageMinimized, setIsPageMinimized] = useState(false);
+  
+  // Robinhood-style state management
+  const [portfolioVisible, setPortfolioVisible] = useState(true);
+  const [healthPortfolio, setHealthPortfolio] = useState({
+    totalValue: 8750.23,
+    dailyChange: 125.67,
+    dailyChangePercent: 1.46,
+    positions: [
+      { name: 'Pain Management', value: 3250.50, change: 45.23, changePercent: 1.41, color: '#00C805' },
+      { name: 'Exercise Routine', value: 2100.75, change: 32.15, changePercent: 1.55, color: '#00C805' },
+      { name: 'Medication Adherence', value: 1890.25, change: 25.30, changePercent: 1.36, color: '#00C805' },
+      { name: 'Sleep Quality', value: 1508.73, change: 22.99, changePercent: 1.55, color: '#00C805' }
+    ]
+  });
+  
+  // Enhanced gamification with investment metaphors
+  const [userStats, setUserStats] = useState({
+    streak: 7,
+    totalXP: 350,
+    level: 4,
+    achievements: ['early_investor', 'consistent_trader'],
+    portfolioValue: 8750.23,
+    dailyGoalCompleted: false,
+    exercisesCompleted: 12,
+    painLogsToday: 2,
+    investmentGrade: 'A+'
+  });
+  
+  const [showCelebration, setShowCelebration] = useState(null);
+  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const soundManager = useRef(new RobinhoodSoundManager());
+  
+  // Robinhood-style UI state
+  const [showPortfolioDetails, setShowPortfolioDetails] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Existing state for compatibility
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [pageHistory, setPageHistory] = useState(['dashboard']);
+  const [isPageMinimized, setIsPageMinimized] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [quickActions, setQuickActions] = useState([]);
   const [smartInsights, setSmartInsights] = useState([]);
   const [healthScore, setHealthScore] = useState(85);
   const [dailyGoals, setDailyGoals] = useState({
-    painLog: { completed: false, target: 1 },
-    exercise: { completed: false, target: 20 }, // minutes
+    painLog: { completed: true, target: 1 },
+    exercise: { completed: true, target: 20 },
     medication: { completed: true, target: 1 },
-    sleep: { completed: true, target: 8 } // hours
+    sleep: { completed: false, target: 8 }
   });
 
-  // Duolingo-inspired state
-  const [userStats, setUserStats] = useState({
-    streak: 3,
-    totalXP: 150,
-    level: 2,
-    achievements: [],
-    dailyGoalCompleted: false,
-    exercisesCompleted: 5,
-    painLogsToday: 1
-  });
-  const [showAchievement, setShowAchievement] = useState(null);
-  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
-  const [showLevelUp, setShowLevelUp] = useState(false);
-  const [soundsEnabled, setSoundsEnabled] = useState(true);
-  const soundManager = useRef(new SoundManager());
-
-  // Duolingo-inspired gamification functions
-  const addXP = (amount, reason) => {
-    setUserStats(prev => {
-      const newXP = prev.totalXP + amount;
-      const newLevel = Math.floor(newXP / 100) + 1;
+  // Investment-style functions
+  const updatePortfolio = (type, amount) => {
+    setHealthPortfolio(prev => {
+      const newValue = prev.totalValue + amount;
+      const changeAmount = amount;
+      const changePercent = (amount / prev.totalValue) * 100;
       
-      if (newLevel > prev.level) {
-        setShowLevelUp(true);
-        soundManager.current.playLevelUp();
-        setTimeout(() => setShowLevelUp(false), 3000);
+      if (amount > 0) {
+        soundManager.current.playHealthImprovement();
+      } else {
+        soundManager.current.playHealthDecline();
       }
       
       return {
         ...prev,
-        totalXP: newXP,
-        level: newLevel
+        totalValue: newValue,
+        dailyChange: prev.dailyChange + changeAmount,
+        dailyChangePercent: ((prev.dailyChange + changeAmount) / prev.totalValue) * 100
       };
     });
+  };
+
+  const addXP = (amount, reason) => {
+    setUserStats(prev => {
+      const newXP = prev.totalXP + amount;
+      const newLevel = Math.floor(newXP / 100) + 1;
+      const portfolioIncrease = amount * 12.5; // XP to portfolio conversion
+      
+      updatePortfolio('gain', portfolioIncrease);
+      
+      if (newLevel > prev.level) {
+        setShowCelebration({ type: 'levelup', level: newLevel });
+        soundManager.current.playAchievement();
+        setTimeout(() => setShowCelebration(null), 4000);
+      } else {
+        soundManager.current.playPortfolioGain();
+      }
+      
+      showNotification(`+${amount} XP - ${reason}`, 'success');
+      
+      return {
+        ...prev,
+        totalXP: newXP,
+        level: newLevel,
+        portfolioValue: prev.portfolioValue + portfolioIncrease
+      };
+    });
+  };
+
+  const completeTransaction = (type, description) => {
+    soundManager.current.playTransaction();
+    addXP(15, description);
     
-    soundManager.current.playSuccess();
-    showNotification(`+${amount} XP - ${reason}`, 'success');
+    // Add to portfolio positions
+    setHealthPortfolio(prev => ({
+      ...prev,
+      positions: prev.positions.map(pos => 
+        pos.name === type ? {
+          ...pos,
+          value: pos.value + 50,
+          change: pos.change + 25,
+          changePercent: ((pos.change + 25) / pos.value) * 100
+        } : pos
+      )
+    }));
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    soundManager.current.playPullToRefresh();
+    
+    // Simulate portfolio update
+    setTimeout(() => {
+      const randomChange = (Math.random() - 0.5) * 100;
+      updatePortfolio('update', randomChange);
+      setIsRefreshing(false);
+    }, 1500);
+  };
+
+  // Show notification with sound
+  const showNotification = (message, type = 'info') => {
+    soundManager.current.playNotification();
+    setNotifications(prev => [
+      ...prev,
+      { id: Date.now(), type, message, time: 'now' }
+    ]);
+    
+    // Auto-remove notification after 3 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.slice(1));
+    }, 3000);
   };
 
   const updateStreak = () => {
@@ -741,146 +865,299 @@ const App = () => {
   return (
     <ErrorBoundary>
       <NotificationProvider>
-        <div className="app">
-          {/* Enhanced Header with Apple Health style */}
-          <header className="app-header">
+        <div className="app robinhood-style">
+          {/* Robinhood-style Header */}
+          <header className="robinhood-header">
             <div className="header-left">
               <button 
                 className="sidebar-toggle"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                aria-label="Toggle sidebar"
+                onClick={() => {
+                  soundManager.current.playSwipe();
+                  setIsSidebarOpen(!isSidebarOpen);
+                }}
+                aria-label="Toggle menu"
               >
                 <Menu />
               </button>
               <div className="app-title">
-                <Heart className="app-icon" />
-                <span>BackPain Pro</span>
+                <Wallet className="app-icon" />
+                <span>HealthFolio</span>
               </div>
             </div>
             
             <div className="header-center">
-              <div className="search-container">
-                <Search className="search-icon" />
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="Search health data, exercises, insights..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                />
-                <div className="search-shortcut">⌘K</div>
+              <div className="portfolio-summary">
+                <button
+                  className="portfolio-toggle"
+                  onClick={() => {
+                    soundManager.current.playButtonPress();
+                    setPortfolioVisible(!portfolioVisible);
+                  }}
+                >
+                  {portfolioVisible ? <Eye /> : <EyeOff />}
+                </button>
+                {portfolioVisible ? (
+                  <div className="portfolio-value">
+                    <div className="total-value">${healthPortfolio.totalValue.toLocaleString()}</div>
+                    <div className={`daily-change ${healthPortfolio.dailyChange >= 0 ? 'positive' : 'negative'}`}>
+                      {healthPortfolio.dailyChange >= 0 ? <ArrowUp /> : <ArrowDown />}
+                      ${Math.abs(healthPortfolio.dailyChange).toFixed(2)} ({healthPortfolio.dailyChangePercent.toFixed(2)}%)
+                    </div>
+                  </div>
+                ) : (
+                  <div className="portfolio-hidden">••••••</div>
+                )}
               </div>
             </div>
             
             <div className="header-right">
-              {/* Duolingo-style User Stats */}
-              <div className="user-stats">
-                <div className="streak-container">
-                  <Flame className="streak-icon" />
-                  <span className="streak-count">{userStats.streak}</span>
-                  <span className="streak-label">day streak</span>
-                </div>
-                
-                <div className="xp-container">
-                  <Star className="xp-icon" />
-                  <span className="xp-count">{userStats.totalXP}</span>
-                  <span className="xp-label">XP</span>
-                </div>
-                
-                <div className="level-container">
-                  <Trophy className="level-icon" />
-                  <span className="level-count">Level {userStats.level}</span>
-                </div>
-              </div>
-
-              <div className="health-score">
-                <Shield className="score-icon" />
-                <span className="score-value">{healthScore}</span>
-                <span className="score-label">Health Score</span>
+              {/* Investment Grade Badge */}
+              <div className="investment-grade">
+                <div className="grade-badge">{userStats.investmentGrade}</div>
+                <div className="grade-label">Health Grade</div>
               </div>
               
               {/* Sound Toggle */}
               <button 
-                className="sound-toggle-btn"
+                className="robinhood-sound-toggle"
                 onClick={() => {
                   soundManager.current.toggle();
                   setSoundsEnabled(!soundsEnabled);
                 }}
                 title={soundsEnabled ? 'Disable sounds' : 'Enable sounds'}
               >
-                {soundsEnabled ? <Volume2 /> : <VolumeX />}
+                {soundsEnabled ? <Headphones /> : <VolumeX />}
               </button>
               
-              <button className="notification-btn">
+              {/* Notifications */}
+              <button 
+                className="robinhood-notifications"
+                onClick={() => soundManager.current.playButtonPress()}
+              >
                 <Bell />
                 {notifications.length > 0 && (
-                  <span className="notification-badge">{notifications.length}</span>
+                  <span className="notification-dot">{notifications.length}</span>
                 )}
               </button>
               
-              <button className="profile-btn">
+              {/* Profile */}
+              <button 
+                className="robinhood-profile"
+                onClick={() => soundManager.current.playButtonPress()}
+              >
                 <User />
-              </button>
-              
-              <button className="help-btn">
-                <HelpCircle />
               </button>
             </div>
           </header>
 
           <div className="app-body">
-            {/* Enhanced Sidebar */}
+            {/* Robinhood-style Portfolio Dashboard */}
+            <div className="portfolio-dashboard">
+              {/* Pull to Refresh */}
+              <div 
+                className={`refresh-indicator ${isRefreshing ? 'active' : ''}`}
+                onClick={handleRefresh}
+              >
+                <div className="refresh-circle">
+                  <ArrowDown className={`refresh-arrow ${isRefreshing ? 'spinning' : ''}`} />
+                </div>
+                <span>Pull to refresh</span>
+              </div>
+
+              {/* Portfolio Chart Area */}
+              <div className="chart-container">
+                <div className="chart-header">
+                  <h2>Health Portfolio</h2>
+                  <div className="time-range">
+                    <button className="time-btn active">1D</button>
+                    <button className="time-btn">1W</button>
+                    <button className="time-btn">1M</button>
+                    <button className="time-btn">1Y</button>
+                  </div>
+                </div>
+                
+                {/* Simulated Chart */}
+                <div className="portfolio-chart">
+                  <div className="chart-line">
+                    <svg width="100%" height="200" viewBox="0 0 400 200">
+                      <defs>
+                        <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" style={{stopColor: '#00C805', stopOpacity: 0.3}} />
+                          <stop offset="100%" style={{stopColor: '#00C805', stopOpacity: 0}} />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M0,150 Q100,120 200,100 T400,80"
+                        stroke="#00C805"
+                        strokeWidth="3"
+                        fill="none"
+                      />
+                      <path
+                        d="M0,150 Q100,120 200,100 T400,80 L400,200 L0,200 Z"
+                        fill="url(#chartGradient)"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Holdings List */}
+              <div className="holdings-container">
+                <div className="holdings-header">
+                  <h3>Your Health Holdings</h3>
+                  <button 
+                    className="view-all-btn"
+                    onClick={() => soundManager.current.playButtonPress()}
+                  >
+                    View All
+                  </button>
+                </div>
+                
+                <div className="holdings-list">
+                  {healthPortfolio.positions.map((position, index) => (
+                    <div 
+                      key={position.name}
+                      className="holding-item"
+                      onClick={() => {
+                        soundManager.current.playCardFlip();
+                        setSelectedPosition(position);
+                      }}
+                    >
+                      <div className="holding-info">
+                        <div className="holding-name">{position.name}</div>
+                        <div className="holding-subtitle">Health Investment</div>
+                      </div>
+                      
+                      <div className="holding-chart">
+                        <div className="mini-chart">
+                          <LineChart size={24} color={position.color} />
+                        </div>
+                      </div>
+                      
+                      <div className="holding-values">
+                        <div className="holding-value">${position.value.toLocaleString()}</div>
+                        <div className={`holding-change ${position.change >= 0 ? 'positive' : 'negative'}`}>
+                          {position.change >= 0 ? '+' : ''}${position.change.toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Actions - Robinhood Style */}
+              <div className="robinhood-actions">
+                <div className="actions-row">
+                  <button 
+                    className="action-btn primary"
+                    onClick={() => completeTransaction('Pain Management', 'Pain tracking session')}
+                  >
+                    <Heart />
+                    <span>Log Pain</span>
+                  </button>
+                  
+                  <button 
+                    className="action-btn secondary"
+                    onClick={() => completeTransaction('Exercise Routine', 'Exercise completed')}
+                  >
+                    <Activity />
+                    <span>Exercise</span>
+                  </button>
+                  
+                  <button 
+                    className="action-btn secondary"
+                    onClick={() => completeTransaction('Medication Adherence', 'Medication taken')}
+                  >
+                    <Pill />
+                    <span>Medication</span>
+                  </button>
+                  
+                  <button 
+                    className="action-btn secondary"
+                    onClick={() => soundManager.current.playMarketOpen()}
+                  >
+                    <BarChart2 />
+                    <span>Reports</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Traditional Sidebar for Navigation */}
             <Sidebar 
               isOpen={isSidebarOpen}
               onClose={() => setIsSidebarOpen(false)}
               activeTab={activeTab}
-              onTabChange={handleTabChange}
+              onTabChange={(tab) => {
+                soundManager.current.playSwipe();
+                handleTabChange(tab);
+              }}
               tabs={tabs}
             />
 
-            {/* Main Content Area */}
-            <main className="main-content">
-              {/* Smart Insights Panel (Notion AI style) */}
-              {smartInsights.length > 0 && (
-                <div className="insights-panel">
-                  <div className="insights-header">
-                    <Brain className="insights-icon" />
-                    <h3>Smart Insights</h3>
-                    <span className="insights-count">{smartInsights.length}</span>
-                  </div>
-                  
-                  <div className="insights-list">
-                    {smartInsights.map(insight => (
-                      <div 
-                        key={insight.id} 
-                        className={`insight-card ${insight.priority} ${insight.color}`}
-                        data-xp={insight.xp}
-                        onClick={() => handleInsightAction(insight)}
-                      >
-                        <div className="insight-icon">
-                          <insight.icon />
-                        </div>
-                        <div className="insight-content">
-                          <h4>{insight.title}</h4>
-                          <p>{insight.description}</p>
-                          <button className="insight-action">
-                            {insight.action}
-                          </button>
-                        </div>
-                        <button 
-                          className="insight-dismiss"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSmartInsights(prev => prev.filter(i => i.id !== insight.id));
-                          }}
-                        >
-                          <X />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+            {/* Page Content when not on dashboard */}
+            {activeTab !== 'dashboard' && (
+              <main className="page-content">
+                <div className="page-header">
+                  <button 
+                    className="back-btn"
+                    onClick={() => {
+                      soundManager.current.playSwipe();
+                      setActiveTab('dashboard');
+                    }}
+                  >
+                    <ArrowLeft />
+                    Back to Portfolio
+                  </button>
+                  <h1>{currentTab.label}</h1>
                 </div>
-              )}
+                <CurrentComponent />
+              </main>
+            )}
+          </div>
+
+          {/* Robinhood-style Celebration Overlays */}
+          {showCelebration && (
+            <div className="robinhood-celebration-overlay">
+              <div className="celebration-content">
+                {showCelebration.type === 'levelup' && (
+                  <>
+                    <div className="celebration-icon">
+                      <Trophy size={80} color="#00C805" />
+                    </div>
+                    <h2>Portfolio Upgraded!</h2>
+                    <p>You've reached Level {showCelebration.level}</p>
+                    <div className="celebration-value">+$500 Portfolio Value</div>
+                  </>
+                )}
+                {showCelebration.type === 'achievement' && (
+                  <>
+                    <div className="celebration-icon">
+                      <Award size={80} color="#00C805" />
+                    </div>
+                    <h2>Achievement Unlocked!</h2>
+                    <p>{showCelebration.title}</p>
+                    <div className="celebration-value">+$250 Bonus</div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Notifications Toast */}
+          {notifications.length > 0 && (
+            <div className="robinhood-notifications-toast">
+              {notifications.map(notification => (
+                <div key={notification.id} className={`toast-item ${notification.type}`}>
+                  {notification.message}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </NotificationProvider>
+    </ErrorBoundary>
+  );
 
               {/* Page Controls with breadcrumbs */}
               <div className="page-controls">
