@@ -35,6 +35,9 @@ Thumbs.db
 logs
 *.log
 
+# Core dumps
+core
+
 # Runtime data
 pids
 *.pid
