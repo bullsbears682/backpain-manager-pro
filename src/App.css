@@ -228,6 +228,12 @@ body {
   font-size: 16px;
 }
 
+.enterprise-insights h4 {
+  color: white !important;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .insight-card {
   background: linear-gradient(135deg, #f8f9ff, #e8f0ff);
   padding: 16px;
@@ -235,6 +241,47 @@ body {
   border-left: 4px solid #667eea;
   position: relative;
   overflow: hidden;
+}
+
+.enterprise-insight-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-left: 4px solid #FFD700;
+  backdrop-filter: blur(10px);
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.insight-type {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.confidence-badge {
+  background: rgba(255, 215, 0, 0.3);
+  color: #FFD700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.algorithm-badge {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 8px;
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .insight-priority {
