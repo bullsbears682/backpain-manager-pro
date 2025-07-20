@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Fragment } from 'react';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { NotificationProvider } from './components/Notification';
@@ -1247,67 +1247,46 @@ const App = () => {
             </main>
           </div>
 
-          {/* Duolingo-style Celebration Overlays */}
-          {showStreakCelebration && (
-            <div className="streak-celebration-overlay">
-              <div className="celebration-content">
-                <div className="celebration-animation">
-                  <Flame className="celebration-flame" />
-                  <div className="fire-particles">
-                    {[...Array(8)].map((_, i) => (
-                      <div key={i} className={`fire-particle particle-${i}`}>🔥</div>
-                    ))}
+          {/* Robinhood-style Celebration Overlays */}
+          <Fragment>
+            {showCelebration && (
+              <div className="robinhood-celebration-overlay">
+                <div className="celebration-content">
+                  {showCelebration.type === 'levelup' && (
+                    <>
+                      <div className="celebration-icon">
+                        <Trophy size={80} color="#00C805" />
+                      </div>
+                      <h2>Portfolio Upgraded!</h2>
+                      <p>You've reached Level {showCelebration.level}</p>
+                      <div className="celebration-value">+$500 Portfolio Value</div>
+                    </>
+                  )}
+                  {showCelebration.type === 'achievement' && (
+                    <>
+                      <div className="celebration-icon">
+                        <Award size={80} color="#00C805" />
+                      </div>
+                      <h2>Achievement Unlocked!</h2>
+                      <p>{showCelebration.title}</p>
+                      <div className="celebration-value">+$250 Bonus</div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Notifications Toast */}
+            {notifications.length > 0 && (
+              <div className="robinhood-notifications-toast">
+                {notifications.map(notification => (
+                  <div key={notification.id} className={`toast-item ${notification.type}`}>
+                    {notification.message}
                   </div>
-                </div>
-                <h2>🔥 {userStats.streak} Day Streak! 🔥</h2>
-                <p>You're on fire! Keep up the amazing consistency!</p>
-                <div className="celebration-xp">+50 XP Bonus!</div>
+                ))}
               </div>
-            </div>
-          )}
-
-          {showLevelUp && (
-            <div className="level-up-overlay">
-              <div className="level-up-content">
-                <div className="level-up-animation">
-                  <Trophy className="celebration-trophy" />
-                  <div className="sparkles">
-                    {[...Array(12)].map((_, i) => (
-                      <div key={i} className={`sparkle sparkle-${i}`}>✨</div>
-                    ))}
-                  </div>
-                </div>
-                <h2>🎉 Level Up! 🎉</h2>
-                <div className="new-level">Level {userStats.level}</div>
-                <p>Congratulations! You've reached a new level in your health journey!</p>
-              </div>
-            </div>
-          )}
-
-          {showAchievement && (
-            <div className="achievement-overlay">
-              <div className="achievement-content">
-                <div className="achievement-animation">
-                  <Award className="celebration-award" />
-                  <div className="achievement-glow"></div>
-                </div>
-                <h2>🏆 Achievement Unlocked! 🏆</h2>
-                <div className="achievement-title">{showAchievement.title}</div>
-                <p>{showAchievement.description}</p>
-                <div className="achievement-xp">+25 XP</div>
-              </div>
-            </div>
-          )}
-
-          {/* Interactive Exercise Breathing Guide */}
-          <div className="breathing-guide hidden" id="breathing-guide">
-            <div className="breathing-circle">
-              <div className="breathing-text">Breathe</div>
-              <button className="breathing-start" onClick={() => startBreathingExercise()}>
-                <PlayCircle />
-              </button>
-            </div>
-          </div>
+            )}
+          </Fragment>
         </div>
       </NotificationProvider>
     </ErrorBoundary>
