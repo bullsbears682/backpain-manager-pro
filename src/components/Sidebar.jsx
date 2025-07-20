@@ -16,25 +16,12 @@ import {
 
 const Sidebar = ({ activeTab, onTabChange, isOpen = false, onToggle }) => {
   const [theme, setTheme] = useState('light');
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     // Load theme from localStorage or default to light
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
-  }, []);
-
-  useEffect(() => {
-    // Check if mobile view
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const toggleTheme = () => {
@@ -46,103 +33,103 @@ const Sidebar = ({ activeTab, onTabChange, isOpen = false, onToggle }) => {
 
   const handleNavClick = (tabId) => {
     onTabChange(tabId);
-    // Close sidebar on mobile after navigation
-    if (isMobile && onToggle) {
-      onToggle();
-    }
+    // Sidebar will be closed by the main app on mobile
   };
 
   const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'pain-tracking', label: 'Pain Tracking', icon: Activity },
-    { id: 'exercises', label: 'Exercises', icon: TrendingUp },
-    { id: 'appointments', label: 'Appointments', icon: Calendar },
-    { id: 'medications', label: 'Medications', icon: Pill },
-    { id: 'education', label: 'Education', icon: BookOpen },
-    { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: Home,
+      description: 'Overview & insights'
+    },
+    {
+      id: 'pain-tracking',
+      label: 'Pain Tracking',
+      icon: TrendingUp,
+      description: 'Log & monitor pain levels'
+    },
+    {
+      id: 'exercises',
+      label: 'Exercises',
+      icon: Activity,
+      description: 'Guided routines & workouts'
+    },
+    {
+      id: 'medications',
+      label: 'Medications',
+      icon: Pill,
+      description: 'Track medication schedule'
+    },
+    {
+      id: 'appointments',
+      label: 'Appointments',
+      icon: Calendar,
+      description: 'Manage healthcare visits'
+    },
+    {
+      id: 'education',
+      label: 'Education',
+      icon: BookOpen,
+      description: 'Learn pain management'
+    },
+    {
+      id: 'reports',
+      label: 'Reports',
+      icon: FileText,
+      description: 'Analytics & progress'
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      description: 'Customize your experience'
+    }
   ];
 
   return (
-    <>
-      {/* Mobile Menu Toggle */}
-      {isMobile && (
-        <button 
-          className="mobile-menu-toggle"
-          onClick={onToggle}
-          aria-label="Toggle menu"
-        >
-          <Menu size={24} />
-        </button>
-      )}
-      
-      {/* Overlay for mobile */}
-      {isMobile && isOpen && (
-        <div 
-          className="sidebar-overlay" 
-          onClick={onToggle}
-          aria-hidden="true"
-        />
-      )}
-      
-      <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          {/* Close button for mobile */}
-          {isMobile && (
-            <button 
-              className="sidebar-close"
-              onClick={onToggle}
-              aria-label="Close menu"
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <div className="sidebar-header">
+        <h1>BackPain Pro</h1>
+        <p>Professional Pain Management</p>
+      </div>
+
+      <nav className="sidebar-nav">
+        {navigationItems.map((item) => {
+          const IconComponent = item.icon;
+          const isActive = activeTab === item.id;
+          
+          return (
+            <button
+              key={item.id}
+              className={isActive ? 'active' : ''}
+              onClick={() => handleNavClick(item.id)}
+              title={item.description}
+              aria-label={`Navigate to ${item.label}`}
             >
-              <X size={20} />
+              <IconComponent size={20} />
+              <div className="nav-item-content">
+                <span className="nav-item-label">{item.label}</span>
+                <span className="nav-item-description">{item.description}</span>
+              </div>
             </button>
-          )}
-          <h1>BackPain Manager Pro</h1>
-          <p>Professional Pain Management System</p>
-        </div>
-      
-      <nav>
-        <ul className="sidebar-nav">
-          {navigationItems.map(item => {
-            const IconComponent = item.icon;
-            return (
-              <li key={item.id}>
-                <button
-                  className={activeTab === item.id ? 'active' : ''}
-                  onClick={() => handleNavClick(item.id)}
-                  aria-label={item.label}
-                  aria-current={activeTab === item.id ? 'page' : undefined}
-                  title={item.label}
-                >
-                  <IconComponent className="icon" />
-                  <span className="nav-label">{item.label}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+          );
+        })}
       </nav>
 
-      <button 
-        className="theme-toggle"
-        onClick={toggleTheme}
-        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-      >
-        {theme === 'light' ? (
-          <>
-            <Moon size={18} />
-            Dark Mode
-          </>
-        ) : (
-          <>
-            <Sun size={18} />
-            Light Mode
-          </>
-        )}
-      </button>
+      <div className="sidebar-footer">
+        <button
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+        >
+          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          <span>
+            {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+          </span>
+        </button>
       </div>
-    </>
+    </aside>
   );
 };
 

@@ -11,7 +11,29 @@ import Education from './pages/Education';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import { initializeDefaultData } from './utils/storage';
-import { CheckCircle, Heart, Activity, BarChart3, Sparkles, Zap, X, ArrowLeft, Minimize2, Plus, Zap as Lightning } from 'lucide-react';
+import { 
+  CheckCircle, 
+  Heart, 
+  Activity, 
+  BarChart3, 
+  Sparkles, 
+  Zap, 
+  X, 
+  ArrowLeft, 
+  Minimize2, 
+  Plus, 
+  Search,
+  Bell,
+  User,
+  HelpCircle,
+  Star,
+  TrendingUp,
+  Calendar,
+  Pill,
+  Menu,
+  BookOpen,
+  FileText
+} from 'lucide-react';
 import './App.css';
 
 const App = () => {
@@ -22,6 +44,9 @@ const App = () => {
   const [pageHistory, setPageHistory] = useState(['dashboard']);
   const [isPageMinimized, setIsPageMinimized] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [quickActions, setQuickActions] = useState([]);
 
   const loadingSteps = [
     { icon: CheckCircle, text: 'Initializing pain tracking system', delay: 0 },
@@ -32,7 +57,43 @@ const App = () => {
     { icon: Zap, text: 'Finalizing setup', delay: 1500 }
   ];
 
-  // Enhanced tab change with smooth transitions
+  // Quick actions for easy access
+  const getQuickActions = () => [
+    {
+      id: 'log-pain',
+      title: 'Log Pain',
+      description: 'Quick pain entry',
+      icon: TrendingUp,
+      color: 'danger',
+      action: () => handleTabChange('pain-tracking')
+    },
+    {
+      id: 'start-exercise',
+      title: 'Start Exercise',
+      description: 'Begin workout',
+      icon: Activity,
+      color: 'success',
+      action: () => handleTabChange('exercises')
+    },
+    {
+      id: 'take-medication',
+      title: 'Take Medication',
+      description: 'Log medication',
+      icon: Pill,
+      color: 'info',
+      action: () => handleTabChange('medications')
+    },
+    {
+      id: 'schedule-appointment',
+      title: 'Book Appointment',
+      description: 'Schedule visit',
+      icon: Calendar,
+      color: 'warning',
+      action: () => handleTabChange('appointments')
+    }
+  ];
+
+  // Enhanced tab change with smooth transitions and breadcrumbs
   const handleTabChange = (tabId) => {
     if (tabId === activeTab) return;
     
@@ -52,160 +113,175 @@ const App = () => {
       setIsTransitioning(false);
       setIsPageMinimized(false);
       
-      // Scroll to top on page change
-      const mainContent = document.querySelector('.main-content');
-      if (mainContent) {
-        mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+      // Close sidebar on mobile after navigation
+      if (window.innerWidth <= 768) {
+        setIsSidebarOpen(false);
       }
     }, 150);
   };
 
-  // Handle back navigation
-  const handleBackNavigation = () => {
+  // Enhanced back navigation
+  const handleBack = () => {
     if (pageHistory.length > 1) {
       const newHistory = [...pageHistory];
       newHistory.pop(); // Remove current page
       const previousPage = newHistory[newHistory.length - 1];
+      
       setPageHistory(newHistory);
-      handleTabChange(previousPage);
-    } else {
-      handleTabChange('dashboard');
+      setActiveTab(previousPage);
+      setIsPageMinimized(false);
     }
   };
 
-  // Handle page close (minimize)
-  const handlePageClose = () => {
-    setIsPageMinimized(true);
-    setTimeout(() => {
-      handleTabChange('dashboard');
-    }, 300);
-  };
-
-  // Handle page minimize toggle
-  const handlePageMinimize = () => {
+  // Page minimize/maximize
+  const handleMinimize = () => {
     setIsPageMinimized(!isPageMinimized);
   };
 
-  // Handle sidebar toggle for mobile
-  const handleSidebarToggle = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  // Close page (go back to dashboard)
+  const handleClose = () => {
+    setActiveTab('dashboard');
+    setPageHistory(['dashboard']);
+    setIsPageMinimized(false);
   };
 
-  // Helper functions for page titles
-  const getPageTitle = (tabId) => {
-    const titles = {
-      'pain-tracking': 'Pain Tracking',
-      'exercises': 'Exercise Library',
-      'medications': 'Medication Manager',
-      'appointments': 'Appointments',
-      'education': 'Education Center',
-      'reports': 'Health Reports',
-      'settings': 'Settings'
-    };
-    return titles[tabId] || 'Dashboard';
+  // Search functionality
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    // Implement search logic here
   };
-
-  const getPageSubtitle = (tabId) => {
-    const subtitles = {
-      'pain-tracking': 'Monitor your daily pain levels',
-      'exercises': 'Guided routines for pain relief',
-      'medications': 'Track your medication schedule',
-      'appointments': 'Manage healthcare visits',
-      'education': 'Learn about pain management',
-      'reports': 'View your progress analytics',
-      'settings': 'Customize your experience'
-    };
-    return subtitles[tabId] || '';
-  };
-
-  useEffect(() => {
-    // Initialize default data on first load
-    try {
-      initializeDefaultData();
-    } catch (error) {
-      console.error('Error initializing data:', error);
-    }
-    
-    // Enhanced loading simulation with realistic timing
-    const progressInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          setTimeout(() => setIsLoading(false), 800);
-          return 100;
-        }
-        return prev + 1.5;
-      });
-    }, 25);
-
-    return () => clearInterval(progressInterval);
-  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      // ESC to close/minimize page
-      if (event.key === 'Escape') {
-        if (activeTab !== 'dashboard') {
-          if (isPageMinimized) {
-            handlePageClose();
-          } else {
-            handlePageMinimize();
-          }
+    const handleKeyDown = (e) => {
+      // ESC to minimize/close
+      if (e.key === 'Escape') {
+        if (isPageMinimized) {
+          handleClose();
+        } else {
+          handleMinimize();
         }
       }
       
-      // Alt + Backspace for back navigation
-      if (event.altKey && event.key === 'Backspace') {
-        event.preventDefault();
-        handleBackNavigation();
+      // Alt + Backspace to go back
+      if (e.altKey && e.key === 'Backspace') {
+        e.preventDefault();
+        handleBack();
       }
       
       // Ctrl/Cmd + M to toggle mobile menu
-      if ((event.ctrlKey || event.metaKey) && event.key === 'm') {
-        event.preventDefault();
-        handleSidebarToggle();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+        e.preventDefault();
+        setIsSidebarOpen(!isSidebarOpen);
+      }
+
+      // Quick navigation shortcuts
+      if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+          case '1':
+            e.preventDefault();
+            handleTabChange('dashboard');
+            break;
+          case '2':
+            e.preventDefault();
+            handleTabChange('pain-tracking');
+            break;
+          case '3':
+            e.preventDefault();
+            handleTabChange('exercises');
+            break;
+          case '4':
+            e.preventDefault();
+            handleTabChange('medications');
+            break;
+        }
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, isPageMinimized]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPageMinimized, isSidebarOpen, pageHistory]);
 
-  // Enhanced render component logic
-  const renderActiveComponent = () => {
-    const componentProps = {
-      onNavigate: handleTabChange
+  // Initialize app data and simulate loading
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Initialize default data
+        await initializeDefaultData();
+        
+        // Simulate loading steps
+        for (let i = 0; i < loadingSteps.length; i++) {
+          setTimeout(() => {
+            setLoadingProgress((i + 1) / loadingSteps.length * 100);
+          }, loadingSteps[i].delay);
+        }
+        
+        // Complete loading
+        setTimeout(() => {
+          setIsLoading(false);
+          setQuickActions(getQuickActions());
+        }, 1800);
+        
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        setIsLoading(false);
+      }
     };
 
-    const components = {
-      dashboard: () => <Dashboard {...componentProps} />,
-      'pain-tracking': () => <PainTracking {...componentProps} />,
-      exercises: () => <Exercises {...componentProps} />,
-      appointments: () => <Appointments {...componentProps} />,
-      medications: () => <Medications {...componentProps} />,
-      education: () => <Education {...componentProps} />,
-      reports: () => <Reports {...componentProps} />,
-      settings: () => <Settings {...componentProps} />
-    };
+    initializeApp();
+  }, []);
 
-    const renderComponent = components[activeTab] || components.dashboard;
+  // Get page title and breadcrumbs
+  const getPageInfo = () => {
+    const pages = {
+      'dashboard': { title: 'Dashboard', icon: BarChart3, breadcrumb: 'Home' },
+      'pain-tracking': { title: 'Pain Tracking', icon: TrendingUp, breadcrumb: 'Health > Pain' },
+      'exercises': { title: 'Exercises', icon: Activity, breadcrumb: 'Health > Exercises' },
+      'appointments': { title: 'Appointments', icon: Calendar, breadcrumb: 'Schedule > Appointments' },
+      'medications': { title: 'Medications', icon: Pill, breadcrumb: 'Health > Medications' },
+      'education': { title: 'Education', icon: BookOpen, breadcrumb: 'Resources > Education' },
+      'reports': { title: 'Reports', icon: FileText, breadcrumb: 'Analytics > Reports' },
+      'settings': { title: 'Settings', icon: Settings, breadcrumb: 'System > Settings' }
+    };
     
-    return (
-      <div className={`page-content ${isTransitioning ? 'transitioning' : ''}`}>
-        {renderComponent()}
-      </div>
-    );
+    return pages[activeTab] || pages['dashboard'];
   };
 
+  const renderPage = () => {
+    const pageProps = {
+      isMinimized: isPageMinimized,
+      onQuickAction: handleTabChange
+    };
+
+    switch (activeTab) {
+      case 'pain-tracking':
+        return <PainTracking {...pageProps} />;
+      case 'exercises':
+        return <Exercises {...pageProps} />;
+      case 'appointments':
+        return <Appointments {...pageProps} />;
+      case 'medications':
+        return <Medications {...pageProps} />;
+      case 'education':
+        return <Education {...pageProps} />;
+      case 'reports':
+        return <Reports {...pageProps} />;
+      case 'settings':
+        return <Settings {...pageProps} />;
+      default:
+        return <Dashboard {...pageProps} quickActions={quickActions} />;
+    }
+  };
+
+  // Loading screen
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-content">
-          <div className="loading-logo">
-            <Activity className="loading-icon" />
+      <div className="loading-screen">
+        <div className="loading-container">
+          <div className="loading-header">
+            <Heart className="loading-logo" />
             <h1>BackPain Manager Pro</h1>
-            <p>Professional Pain Management System</p>
+            <p>Professional Pain Management Solution</p>
           </div>
           
           <div className="loading-progress">
@@ -213,26 +289,24 @@ const App = () => {
               <div 
                 className="progress-fill" 
                 style={{ width: `${loadingProgress}%` }}
-              ></div>
+              />
             </div>
             <span className="progress-text">{Math.round(loadingProgress)}%</span>
           </div>
           
           <div className="loading-steps">
             {loadingSteps.map((step, index) => {
-              const IconComponent = step.icon;
-              const isActive = loadingProgress > (index * 16.67);
-              const isCompleted = loadingProgress > ((index + 1) * 16.67);
+              const StepIcon = step.icon;
+              const isActive = loadingProgress >= ((index + 1) / loadingSteps.length * 100);
+              const isCompleted = loadingProgress > ((index + 1) / loadingSteps.length * 100);
               
               return (
                 <div 
                   key={index} 
                   className={`loading-step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-                  style={{ animationDelay: `${step.delay}ms` }}
                 >
-                  <IconComponent className="step-icon" />
-                  <span className="step-text">{step.text}</span>
-                  {isCompleted && <CheckCircle className="check-icon" />}
+                  <StepIcon size={20} />
+                  <span>{step.text}</span>
                 </div>
               );
             })}
@@ -242,76 +316,162 @@ const App = () => {
     );
   }
 
+  const pageInfo = getPageInfo();
+  const PageIcon = pageInfo.icon;
+
   return (
     <ErrorBoundary>
       <NotificationProvider>
         <div className="app">
-          <Sidebar 
-            activeTab={activeTab} 
+          {/* Enhanced Header */}
+          <header className="app-header">
+            <div className="header-left">
+              <button 
+                className="mobile-menu-toggle"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                aria-label="Toggle menu"
+              >
+                <Menu size={20} />
+              </button>
+              
+              <div className="app-brand">
+                <Heart className="brand-icon" />
+                <span className="brand-text">BackPain Pro</span>
+              </div>
+            </div>
+
+            <div className="header-center">
+              <div className="search-container">
+                <Search className="search-icon" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search pain logs, exercises, medications..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+            </div>
+
+            <div className="header-right">
+              <button className="header-action" aria-label="Help">
+                <HelpCircle size={20} />
+              </button>
+              <button className="header-action notification-btn" aria-label="Notifications">
+                <Bell size={20} />
+                {notifications.length > 0 && (
+                  <span className="notification-badge">{notifications.length}</span>
+                )}
+              </button>
+              <button className="header-action" aria-label="Profile">
+                <User size={20} />
+              </button>
+            </div>
+          </header>
+
+          {/* Sidebar */}
+          <Sidebar
+            activeTab={activeTab}
             onTabChange={handleTabChange}
             isOpen={isSidebarOpen}
-            onToggle={handleSidebarToggle}
+            onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           />
+
+          {/* Sidebar Overlay for Mobile */}
+          {isSidebarOpen && (
+            <div 
+              className="sidebar-overlay"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+
+          {/* Main Content */}
           <main className={`main-content ${isPageMinimized ? 'minimized' : ''}`}>
-            {/* Infinex-style Page Controls */}
-            {activeTab !== 'dashboard' && (
-              <div className="page-controls">
-                <div className="page-controls-left">
-                  <button 
-                    className="control-btn back-btn"
-                    onClick={handleBackNavigation}
-                    title="Go Back"
-                  >
-                    <ArrowLeft size={18} />
-                  </button>
-                  <div className="page-title">
-                    <h2>{getPageTitle(activeTab)}</h2>
-                    <span className="page-subtitle">{getPageSubtitle(activeTab)}</span>
-                  </div>
+            {/* Enhanced Page Controls */}
+            <div className="page-controls">
+              <div className="page-info">
+                <div className="breadcrumb">
+                  <span className="breadcrumb-text">{pageInfo.breadcrumb}</span>
                 </div>
-                <div className="page-controls-right">
-                  <button 
-                    className="control-btn minimize-btn"
-                    onClick={handlePageMinimize}
-                    title={isPageMinimized ? "Expand" : "Minimize"}
-                  >
-                    <Minimize2 size={18} />
-                  </button>
-                  <button 
-                    className="control-btn close-btn"
-                    onClick={handlePageClose}
-                    title="Close Page"
-                  >
-                    <X size={18} />
-                  </button>
+                <div className="page-title">
+                  <PageIcon className="page-icon" size={24} />
+                  <h2>{pageInfo.title}</h2>
+                  {activeTab !== 'dashboard' && (
+                    <span className="page-badge">Active</span>
+                  )}
                 </div>
               </div>
-            )}
-            
-            <div className={`content-wrapper ${isPageMinimized ? 'minimized' : ''}`}>
-              {renderActiveComponent()}
+              
+              <div className="page-actions">
+                {pageHistory.length > 1 && (
+                  <button 
+                    className="control-btn back-btn" 
+                    onClick={handleBack}
+                    title="Go back (Alt+Backspace)"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                )}
+                
+                <button 
+                  className="control-btn minimize-btn" 
+                  onClick={handleMinimize}
+                  title={isPageMinimized ? "Maximize (Esc)" : "Minimize (Esc)"}
+                >
+                  <Minimize2 size={16} />
+                </button>
+                
+                {activeTab !== 'dashboard' && (
+                  <button 
+                    className="control-btn close-btn" 
+                    onClick={handleClose}
+                    title="Close page"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
             </div>
-            
-            {/* Floating Action Buttons */}
-            {activeTab === 'dashboard' && (
-              <div className="floating-actions">
-                <button 
-                  className="fab quick-pain"
-                  onClick={() => handleTabChange('pain-tracking')}
-                  title="Quick Pain Log"
-                >
-                  <Lightning size={20} />
-                </button>
-                <button 
-                  className="fab quick-exercise"
-                  onClick={() => handleTabChange('exercises')}
-                  title="Start Exercise"
-                >
-                  <Activity size={20} />
-                </button>
-              </div>
-            )}
+
+            {/* Page Content */}
+            <div className={`page-content ${isTransitioning ? 'transitioning' : ''}`}>
+              {renderPage()}
+            </div>
           </main>
+
+          {/* Quick Actions FAB */}
+          {activeTab === 'dashboard' && (
+            <div className="floating-actions">
+              <button 
+                className="fab quick-pain"
+                onClick={() => handleTabChange('pain-tracking')}
+                title="Quick Pain Log"
+              >
+                <TrendingUp size={24} />
+              </button>
+              
+              <button 
+                className="fab quick-exercise"
+                onClick={() => handleTabChange('exercises')}
+                title="Start Exercise"
+              >
+                <Activity size={24} />
+              </button>
+            </div>
+          )}
+
+          {/* Keyboard Shortcuts Helper */}
+          <div className="keyboard-shortcuts" title="Keyboard Shortcuts">
+            <div className="shortcut-item">
+              <kbd>Esc</kbd> <span>Minimize/Close</span>
+            </div>
+            <div className="shortcut-item">
+              <kbd>Alt</kbd> + <kbd>⌫</kbd> <span>Back</span>
+            </div>
+            <div className="shortcut-item">
+              <kbd>Ctrl</kbd> + <kbd>1-4</kbd> <span>Quick Nav</span>
+            </div>
+          </div>
         </div>
       </NotificationProvider>
     </ErrorBoundary>
