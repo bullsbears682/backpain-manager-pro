@@ -30,14 +30,16 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './public/index.html',
-      title: 'BackPain Manager Pro',
+      title: 'HealthFolio - Your Health Investment Platform',
     }),
   ],
   devServer: {
     static: path.join(__dirname, 'dist'),
     compress: true,
-    port: 3000,
+    port: process.env.PORT || 3001,
     historyApiFallback: true,
+    hot: true,
+    open: false,
   },
   resolve: {
     extensions: ['.js', '.jsx'],
